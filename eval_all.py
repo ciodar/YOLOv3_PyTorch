@@ -55,10 +55,10 @@ def get_image_txt_name(imagefile):
     return imagefile.replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png','.txt').replace('.tif','.txt')
 
 
-def eval_list(cfgfile, namefile, weightfile, testfile):
+def eval_list(cfgfile, namefile, weightfile, testfile,use_cuda=True):
     m = Darknet(cfgfile)
     m.load_weights(weightfile)
-    use_cuda = 1
+    #TODO pass as parameter
     if use_cuda:
         m.cuda()
 
@@ -76,6 +76,7 @@ def eval_list(cfgfile, namefile, weightfile, testfile):
         filename = os.path.splitext(filename)[0]
         #print(filename, img.width, img.height, sized_width, sized_height)
 
+        #Images with resolution higher than 2560x1024 are not considered
         if m.width * m.height > 1024 * 2560:
             print('omit %s' % filename)
             continue
@@ -96,7 +97,7 @@ def eval_list(cfgfile, namefile, weightfile, testfile):
             print('img: save to %s' % savename)
             plot_boxes(img, boxes, savename, class_names)
 
-        if False:
+        if True:
             savename = get_det_result_name(imgfile)
             print('det: save to %s' % savename)
             save_boxes(imgfile, img, boxes, savename)
@@ -108,8 +109,8 @@ if __name__ == '__main__':
         namefile = sys.argv[2]
         wgtfile = sys.argv[3]
         testlist = sys.argv[4]
-
-        eval_list (cfgfile, namefile, wgtfile, testlist)
+        use_cuda = False
+        eval_list (cfgfile, namefile, wgtfile, testlist,use_cuda)
     else:
         print("Usage: %s cfgfile classname weight testlist" % sys.argv[0] )
 
