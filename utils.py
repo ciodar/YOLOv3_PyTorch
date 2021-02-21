@@ -111,7 +111,7 @@ def convert2cpu(gpu_matrix):
 def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
-def get_all_boxes(output, netshape, conf_thresh, num_classes, only_objectness=1, validation=False, use_cuda=True):
+def get_all_boxes(output, netshape, conf_thresh, num_classes, only_objectness=1, validation=False, cuda_device='cuda:0'):
     # total number of inputs (batch size)
     # first element (x) for first tuple (x, anchor_mask, num_anchor)
     tot = output[0]['x'].data.size(0)
@@ -125,13 +125,13 @@ def get_all_boxes(output, netshape, conf_thresh, num_classes, only_objectness=1,
         num_anchors = output[i]['n'].data[0].item()
 
         b = get_region_boxes(pred, netshape, conf_thresh, num_classes, anchors, num_anchors, \
-                only_objectness=only_objectness, validation=validation, use_cuda=use_cuda)
+                only_objectness=only_objectness, validation=validation, cuda_device=cuda_device)
         for t in range(tot):
             all_boxes[t] += b[t]
     return all_boxes
 
-def get_region_boxes(output, netshape, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False, use_cuda=True):
-    device = torch.device("cuda" if use_cuda else "cpu")
+def get_region_boxes(output, netshape, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False, cuda_device='cuda:0'):
+    device = torch.device(cuda_device)
     anchors = anchors.to(device)
     anchor_step = anchors.size(0)//num_anchors
     if output.dim() == 3:
@@ -432,6 +432,15 @@ def file_lines(thefilepath):
         count += buffer.count(b'\n')
     thefile.close( )
     return count
+
+def get_image_list(image_path,foldername):
+    image_list = []
+    if(image_path[-1]!='/'):
+        image_path = image_path + '/'
+    with open(foldername) as fp:
+        tmp_files = fp.readlines()
+        image_list = [os.path.realpath(image_path + item.rstrip()) for item in tmp_files]
+    return image_list
 
 def get_image_size(fname):
     '''Determine the image type of fhandle and return its size.
