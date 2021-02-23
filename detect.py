@@ -22,9 +22,12 @@ def detect_model(cfgfile, modelfile, dir):
         m.load_weights(modelfile)
 
     # m.print_network()
-    use_cuda = True
+    use_cuda = False
     if use_cuda:
         m.cuda()
+        cuda_device='cuda:0'
+    else:
+        cuda_device='cpu'
 
     m.eval()
 
@@ -45,7 +48,7 @@ def detect_model(cfgfile, modelfile, dir):
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
         detect_time_start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.6923, 1, use_cuda)
 
         detect_time_end = time.time() - detect_time_start
         total_time += detect_time_end
@@ -76,7 +79,7 @@ def detect_cv2(cfgfile, weightfile, imgfile):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
     
-    use_cuda = True
+    use_cuda = False
     if use_cuda:
         m.cuda()
 
@@ -165,8 +168,8 @@ def readvideo_cv2(cfgfile, weightfile, videoname):
 
 if __name__ == '__main__':
     globals()["namesfile"] = 'data/kaist_person.names'
-    cfgfile = 'cfg/yolov3_kaist.cfg'
-    weightfile = 'weights/kaist_thermal_detector.weights'
+    cfgfile = 'C:/Users/Dario/Documents/Projects/YOLOv3_PyTorch/cfg/yolov3_flir.cfg'
+    weightfile = 'K:/weights/flir_detector.weights'
     if len(sys.argv) >= 1:
         if len(sys.argv) == 2:
             imgfile = sys.argv[1]

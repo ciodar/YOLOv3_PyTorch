@@ -89,23 +89,35 @@ def mse_by_det_num(annotation_json,detection_json,conf):
         ann_data = json.load(ann_file)
     with open(detection_json) as det_file:
         det_data = json.load(det_file)
-    cat = pd.DataFrame(ann_data['categories']).rename(columns={'id':'category_id','name':'category'})
+    category_dict = {
+        1:"person",
+        2:"bicycle",
+        3:"car",
+        17:"dog"
+    }
+    #cat = pd.DataFrame(ann_data['categories']).rename(columns={'id':'category_id','name':'category'})
     images = pd.DataFrame(ann_data['images']).rename(columns={'id':'image_id'})
-    ann_df = pd.merge(pd.DataFrame(ann_data['annotations']),cat,on=['category_id'],how='inner')
+    #ann_df = pd.merge(pd.DataFrame(ann_data['annotations']),cat,on=['category_id'],how='inner')
+    #ann_df = ann_df[ann_df['category']=='person']
+    ann_df = pd.DataFrame(ann_data['annotations'])
     ann_df = pd.merge(images,ann_df,on=['image_id'],how='left')
+    ann_df['file_name'] = ann_df['file_name'].apply(lambda x: pl.Path(x).stem)
     ann_df['image_id'] = ann_df['image_id'].astype('category')
-    ann_df['file_name'] = ann_df['file_name'].astype('category')
+    ann_df = ann_df.groupby(['file_name','category_id']).size().reset_index(name='count').rename(columns={'file_name':'image_id'})
     det_df = pd.DataFrame(det_data)
-    det_df_c = det_df[det_df['score']>=conf].groupby(['image_id']).size().reset_index(name='count')
-    df = ann_df.merge(det_df_c,how='left',on='image_id').fillna(0)
+    det_df_c = det_df[det_df['score']>=conf].groupby(['image_id','category_id']).size().reset_index(name='count')
+    df = ann_df.merge(det_df_c,how='left',on=['image_id','category_id']).fillna(0)
     mse = {}
-    for i in sorted(df['count_x'].unique()):
-        mse[i] = mean_squared_error(df[df['count_x']==i].count_x, df[df['count_x']==i].count_y, squared=False)
-    plt.plot(*zip(*mse.items()))
+    for cat_id in sorted(df['category_id'].unique()):
+        mse[cat_id]={}
+        for i in sorted(df[df.category_id==cat_id].count_x.unique()):
+            mse[cat_id][i] = mean_squared_error(df[(df.count_x==i) & (df.category_id==cat_id)].count_x, df[(df.count_x==i) & (df.category_id==cat_id)].count_y, squared=False)
+        plt.plot(*zip(*(mse[cat_id]).items()),label=category_dict[cat_id])
     #plt.ylim(0,30)
     #plt.xticks(np.arange(0, 1, 0.05),rotation=90)
     #plt.yticks(np.arange(0, 30, 2))
     plt.grid()
+    plt.legend()
     plt.xlabel('# of detection per image')
     plt.ylabel('RMSE')
     plt.show()
@@ -120,5 +132,5 @@ def count_all():
 
 if __name__ == '__main__':
     #count_people()
-    square_mean_loss('K:/dataset/flir_dataset/train/thermal_annotations.json','K:/results/flir_evaluation_0005/detection_results.json')
-    #mse_by_det_num('K:/dataset/flir_dataset/train/thermal_annotations.json','K:/results/flir_evaluation_0005/detection_results.json',0.1795)
+    #square_mean_loss('K:/dataset/flir_dataset/train/thermal_annotations.json','K:/results/flir_evaluation_0005/detection_results.json')
+    mse_by_det_num('K:/dataset/flir_dataset/train/thermal_annotations.json','K:/results/flir_evaluation_0005/detection_results.json',0.6923)

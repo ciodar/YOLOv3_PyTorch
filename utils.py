@@ -379,7 +379,11 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=True):
         shape=(0,0)
     else:
         shape=(model.width, model.height)
-    boxes = get_all_boxes(out_boxes, shape, conf_thresh, model.num_classes, use_cuda=use_cuda)[0]
+    if use_cuda:
+        cuda_device='cuda:0'
+    else:
+        cuda_device='cpu'
+    boxes = get_all_boxes(out_boxes, shape, conf_thresh, model.num_classes, cuda_device=cuda_device)[0]
     
     t3 = time.time()
     boxes = nms(boxes, nms_thresh)
