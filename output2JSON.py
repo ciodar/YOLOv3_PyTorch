@@ -3,7 +3,7 @@ import pathlib as pl
 import json
 def convert_predict_to_JSON():
     # path_source = os.getcwd()
-    path_source = pl.Path('K:/results/flir_evaluation_0005')
+    path_source = pl.Path('K:/results/test_flir_evaluation_0005')
 
     #filename = 'det_test_person.txt'
     #TODO link with actual dataset category dictionary

@@ -167,15 +167,15 @@ class YoloLayer(nn.Module):
         loss = loss_coord + loss_conf + loss_cls
 
         t4 = time.time()
-        if False:
+        if True:
             print('-'*30)
             print('        activation : %f' % (t1 - t0))
             print(' create pred_boxes : %f' % (t2 - t1))
             print('     build targets : %f' % (t3 - t2))
             print('       create loss : %f' % (t4 - t3))
             print('             total : %f' % (t4 - t0))
-        # print('%d: Layer(%03d) nGT %3d, nRC %3d, nRC75 %3d, nPP %3d, loss: box %6.3f, conf %6.3f, class %6.3f, total %7.3f'
-        #         % (self.seen, self.nth_layer, nGT, nRecall, nRecall75, nProposals, loss_coord, loss_conf, loss_cls, loss))
+            print('%d: Layer(%03d) nGT %3d, nRC %3d, nRC75 %3d, nPP %3d, loss: box %6.3f, conf %6.3f, class %6.3f, total %7.3f'
+            % (self.seen, self.nth_layer, nGT, nRecall, nRecall75, nProposals, loss_coord, loss_conf, loss_cls, loss))
         if math.isnan(loss.item()):
             print(coord, conf, tconf)
             sys.exit(0)
