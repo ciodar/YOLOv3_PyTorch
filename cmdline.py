@@ -7,9 +7,8 @@ def arg_parse():
 
     parser = argparse.ArgumentParser(description='YOLO v3 Detection Module')
 
-    parser.add_argument("--images", dest = 'images', help =
-    "Image / Directory containing images to perform detection upon",
-                        default = "K:/dataset/flir_dataset_analyzed/20_crowd", type = str)
+    parser.add_argument('images',metavar = 'images', help =
+    "Image / Directory containing images to perform detection upon", type = str)
     parser.add_argument("--det", dest = 'det', help =
     "Image / Directory to store detections to",
                         default = "K:/output", type = str)
@@ -28,4 +27,7 @@ def arg_parse():
     parser.add_argument("--cuda", dest = 'cuda',
                         help = "Enable the use of the GPU",
                         default = False, type = bool)
+    parser.add_argument("--device", dest = 'device',
+                        help = "Choose the device to be used",
+                        default = "cuda:0", type = str)
     return parser.parse_args()

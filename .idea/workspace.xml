@@ -4,9 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="76c1a548-57e5-4139-b93c-17629ca480c3" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/cmdline.py" afterDir="false" />
+    <list default="true" id="76c1a548-57e5-4139-b93c-17629ca480c3" name="Default Changelist" comment="added command line args support">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmdline.py" beforeDir="false" afterPath="$PROJECT_DIR$/cmdline.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/detect.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -140,7 +140,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/detect.py" />
-      <option name="PARAMETERS" value="--images=&quot;K:\dataset\flir_dataset_analyzed\20_crowd\FLIR_02709.jpeg&quot; --cuda=&quot;False&quot;" />
+      <option name="PARAMETERS" value="K:\dataset\flir_dataset_analyzed\20_crowd\FLIR_02709.jpeg --cuda=&quot;False&quot;" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -277,7 +277,8 @@
       <workItem from="1614501614955" duration="13780000" />
       <workItem from="1614585506909" duration="5532000" />
       <workItem from="1614863378695" duration="7941000" />
-      <workItem from="1614937809524" duration="6646000" />
+      <workItem from="1614937809524" duration="10441000" />
+      <workItem from="1615109245485" duration="4182000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1613824594268</created>
@@ -307,7 +308,21 @@
       <option name="project" value="LOCAL" />
       <updated>1614872562722</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="added command line args support">
+      <created>1614952816907</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1614952816908</updated>
+    </task>
+    <task id="LOCAL-00006" summary="added command line args support">
+      <created>1614952831711</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1614952831711</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -336,6 +351,16 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+      </list>
+    </option>
+  </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
@@ -353,15 +378,16 @@
     <MESSAGE value="flir evaluation of mse,missing/exceeding detections" />
     <MESSAGE value="initial configuration of drawBBxs, converted utils to use device" />
     <MESSAGE value="enhanced mse analysis" />
-    <option name="LAST_COMMIT_MESSAGE" value="enhanced mse analysis" />
+    <MESSAGE value="added command line args support" />
+    <option name="LAST_COMMIT_MESSAGE" value="added command line args support" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/detect.py</url>
-          <line>186</line>
-          <option name="timeStamp" value="38" />
+          <line>17</line>
+          <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
@@ -379,7 +405,7 @@
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$eval_ap.coverage" NAME="eval_all Coverage Results" MODIFIED="1613757690875" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$mse_analysis.coverage" NAME="mse_analysis Coverage Results" MODIFIED="1614872151396" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$json_annotations.coverage" NAME="json_annotations Coverage Results" MODIFIED="1614003926568" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$detect.coverage" NAME="detect Coverage Results" MODIFIED="1614952351539" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$detect.coverage" NAME="detect Coverage Results" MODIFIED="1615109568586" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$eval_all.coverage" NAME="eval_all Coverage Results" MODIFIED="1613825555694" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
   <component name="editorHistoryManager">
