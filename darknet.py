@@ -181,7 +181,7 @@ class Darknet(nn.Module):
                 elif len(layers) == 3:
                     x1 = outputs[layers[0]]
                     x2 = outputs[layers[1]]
-                    x3 = outputs[layers[3]]
+                    x3 = outputs[layers[2]]
                     x = torch.cat((x1,x2,x3),1)
                 outputs[ind] = x
             else:
@@ -435,9 +435,10 @@ class Darknet(nn.Module):
                 batch_normalize = int(block['batch_normalize'])
                 if batch_normalize:
                     start = load_conv_bn(buf, start, model[0], model[1])
+                    #print('index ', ind)
                 else:
                     my_ind += 1
-                    # print('index = ',my_ind,' index ',ind)
+                    #print('index = ',my_ind,' index ',ind)
                     start = load_conv(buf, start, model[0])
 
             elif block['type'] == 'connected':
@@ -476,6 +477,8 @@ class Darknet(nn.Module):
             elif block['type'] == 'leaky':
                 pass
             elif block['type'] == 'relu':
+                pass
+            elif block['type']=='merge':
                 pass
             else:
                 print('unknown type %s' % (block['type']))
