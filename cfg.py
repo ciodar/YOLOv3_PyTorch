@@ -190,7 +190,7 @@ def save_conv(fp, conv_model):
 
 def load_bn_from_yolov3_instead_random(start,end):
     import numpy as np
-    weightfile = 'weights/yolov3.weights'
+    weightfile = 'weights/kaist_thermal_detector.weights'
 
     fp = open(weightfile, 'rb')
     version = np.fromfile(fp, count=3, dtype=np.int32)
