@@ -208,7 +208,7 @@ def get_region_boxes(output, netshape, conf_thresh, num_classes, anchors, num_an
                         boxes.append(box)
         all_boxes.append(boxes)
     t3 = time.time()
-    if True:
+    if False:
         print('---------------------------------')
         print('matrix computation : %f' % (t1-t0))
         print('        gpu to cpu : %f' % (t2-t1))

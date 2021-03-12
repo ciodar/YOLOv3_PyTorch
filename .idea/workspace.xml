@@ -5,9 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="76c1a548-57e5-4139-b93c-17629ca480c3" name="Default Changelist" comment="added command line args support">
+      <change afterPath="$PROJECT_DIR$/cfg/yolov3_kaist_density.cfg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmdline.py" beforeDir="false" afterPath="$PROJECT_DIR$/cmdline.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/detect.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -17,7 +18,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="flir_analysis" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -79,11 +80,12 @@
     <property name="WebServerToolWindowPanel.toolwindow.show.permissions" value="false" />
     <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
     <property name="credentialsType com.jetbrains.python.remote.PyCreateRemoteInterpreterDialog$PyCreateRemoteSdkForm" value="Web Deployment" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/detect.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/cfg" />
     <property name="settings.editor.selected.configurable" value="preferences.keymap" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Dario\Documents\Projects\YOLOv3_PyTorch\cfg" />
       <recent name="C:\Users\Dario\Documents\Projects\YOLOv3_PyTorch" />
       <recent name="C:\Users\Dario\Documents\Projects\YOLOv3_PyTorch\data" />
     </key>
@@ -140,7 +142,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/detect.py" />
-      <option name="PARAMETERS" value="K:\dataset\flir_dataset_analyzed\20_crowd\FLIR_02709.jpeg --cuda=&quot;False&quot;" />
+      <option name="PARAMETERS" value="K:\dataset\flir_dataset_analyzed\20_crowd\FLIR_02709.jpeg --cuda=&quot;False&quot; --cfg=&quot;cfg/yolov3_kaist_density.cfg&quot;" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -278,7 +280,10 @@
       <workItem from="1614585506909" duration="5532000" />
       <workItem from="1614863378695" duration="7941000" />
       <workItem from="1614937809524" duration="10441000" />
-      <workItem from="1615109245485" duration="4182000" />
+      <workItem from="1615109245485" duration="7189000" />
+      <workItem from="1615195172828" duration="3950000" />
+      <workItem from="1615472747664" duration="7976000" />
+      <workItem from="1615535650327" duration="485000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <created>1613824594268</created>
@@ -322,7 +327,14 @@
       <option name="project" value="LOCAL" />
       <updated>1614952831711</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="added device choice">
+      <created>1615125344404</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1615125344404</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -379,15 +391,26 @@
     <MESSAGE value="initial configuration of drawBBxs, converted utils to use device" />
     <MESSAGE value="enhanced mse analysis" />
     <MESSAGE value="added command line args support" />
-    <option name="LAST_COMMIT_MESSAGE" value="added command line args support" />
+    <MESSAGE value="added device choice" />
+    <option name="LAST_COMMIT_MESSAGE" value="added device choice" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/detect.py</url>
-          <line>17</line>
+          <line>79</line>
           <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/utils.py</url>
+          <line>385</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/darknet.py</url>
+          <line>393</line>
+          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
@@ -405,7 +428,7 @@
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$eval_ap.coverage" NAME="eval_all Coverage Results" MODIFIED="1613757690875" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$mse_analysis.coverage" NAME="mse_analysis Coverage Results" MODIFIED="1614872151396" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$json_annotations.coverage" NAME="json_annotations Coverage Results" MODIFIED="1614003926568" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$detect.coverage" NAME="detect Coverage Results" MODIFIED="1615109568586" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$detect.coverage" NAME="detect Coverage Results" MODIFIED="1615536136885" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/YOLOv3_PyTorch$eval_all.coverage" NAME="eval_all Coverage Results" MODIFIED="1613825555694" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
   <component name="editorHistoryManager">

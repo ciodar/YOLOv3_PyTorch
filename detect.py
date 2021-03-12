@@ -76,7 +76,7 @@ def detect_model(args):
 def detect_cv2(args):
 
     m = Darknet(args.cfgfile)
-    # m.print_network()
+    m.print_network()
     m.load_weights(args.weightsfile)
     print('Loading weights from %s... Done!' % (args.weightsfile))
     
