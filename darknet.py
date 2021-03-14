@@ -124,7 +124,6 @@ class Darknet(nn.Module):
         outno = 0
         for block in self.blocks:
             ind = ind + 1
-
             if block['type'] == 'net':
                 continue
             elif block['type'] in ['convolutional', 'maxpool', 'reorg', 'upsample', 'avgpool', 'softmax', 'connected']:
@@ -169,6 +168,21 @@ class Darknet(nn.Module):
                 gamma = gamma.unsqueeze(2).unsqueeze(3).expand_as(x)
                 beta = beta.unsqueeze(2).unsqueeze(3).expand_as(x)
                 x = (gamma * x) + beta
+                outputs[ind] = x
+            elif block['type'] == 'merge':
+                layers = block['layers'].split(',')
+                layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
+                if len(layers) == 1:
+                    x = outputs[layers[0]]
+                elif len(layers) == 2:
+                    x1 = outputs[layers[0]]
+                    x2 = outputs[layers[1]]
+                    x = torch.cat((x1, x2), 1)
+                elif len(layers) == 3:
+                    x1 = outputs[layers[0]]
+                    x2 = outputs[layers[1]]
+                    x3 = outputs[layers[2]]
+                    x = torch.cat((x1,x2,x3),1)
                 outputs[ind] = x
             else:
                 print('unknown type %s' % (block['type']))
@@ -371,6 +385,20 @@ class Darknet(nn.Module):
                     out_filters.append(prev_filters)
                     out_strides.append(prev_stride)
                     models.append(EmptyModule())
+            elif block['type'] == 'merge':
+                layers = block['layers'].split(',')
+                ind = len(models)
+                layers = [int(i) if int(i) > 0 else int(i)+ind for i in layers]
+                if len(layers) == 1:
+                    prev_filters = out_filters[layers[0]]
+                    prev_stride = out_strides[layers[0]]
+                elif len(layers) == 2:
+                    assert(layers[0] == ind - 1)
+                    prev_filters = out_filters[layers[0]] + out_filters[layers[1]]
+                    prev_stride = out_strides[layers[0]]
+                out_filters.append(prev_filters)
+                out_strides.append(prev_stride)
+                models.append(EmptyModule())
             else:
                 print('unknown type %s' % (block['type']))
     
@@ -407,9 +435,10 @@ class Darknet(nn.Module):
                 batch_normalize = int(block['batch_normalize'])
                 if batch_normalize:
                     start = load_conv_bn(buf, start, model[0], model[1])
+                    #print('index ', ind)
                 else:
                     my_ind += 1
-                    # print('index = ',my_ind,' index ',ind)
+                    #print('index = ',my_ind,' index ',ind)
                     start = load_conv(buf, start, model[0])
 
             elif block['type'] == 'connected':
@@ -448,6 +477,8 @@ class Darknet(nn.Module):
             elif block['type'] == 'leaky':
                 pass
             elif block['type'] == 'relu':
+                pass
+            elif block['type']=='merge':
                 pass
             else:
                 print('unknown type %s' % (block['type']))
