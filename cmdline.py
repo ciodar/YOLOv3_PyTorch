@@ -16,6 +16,7 @@ def arg_parse():
     parser.add_argument("--confidence", dest = "confidence", help = "Object Confidence to filter predictions", default = 0.5)
     parser.add_argument("--nms_thresh", dest = "nms_thresh", help = "NMS Threshhold", default = 0.4)
     parser.add_argument("--cfg", dest = 'cfgfile', help ="Config file",default = "cfg/yolov3_flir.cfg", type = str)
+    parser.add_argument("--data", dest='datacfg', help="Data configuration file", default="data/flir.data", type=str)
     parser.add_argument("--weights", dest = 'weightsfile', help ="weightsfile", default = "K:/weights/flir_detector.weights",
                         type = str)
     parser.add_argument("--reso", dest = 'reso',

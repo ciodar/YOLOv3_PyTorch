@@ -1,5 +1,5 @@
 classes= 3
-train  = data/flir_train.txt
+train  = data/flir_train_local_test.txt
 valid  = data/flir_test.txt
 names = data/flir.names
 backup = backup

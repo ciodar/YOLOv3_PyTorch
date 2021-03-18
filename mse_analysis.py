@@ -126,12 +126,14 @@ def mse_by_det_num(annotation_json,detection_json,conf):
 
 
 
-def count_all():
-    json_path = 'K:/dataset/flir dataset/video/thermal_annotations.json'
+def create_train_file():
+    json_path = 'K:/dataset/flir dataset/train/thermal_annotations.json'
+    with open(annotation_json) as ann_file:
+        ann_data = json.load(ann_file)
 
 
 if __name__ == '__main__':
-    json_path = 'K:/dataset/flir_dataset/val/thermal_annotations.json'
+    json_path = 'D:/dataset/flir_dataset/train/thermal_annotations.json'
     df = count_people(json_path)
     df.groupby('category').size().plot(kind='bar',rot=45,ylabel='number of annotations')
         #plt.plot(g[g.category==cat]['count'],g[g.category==cat].count_c,label=cat,marker='o',markevery=5)
@@ -142,5 +144,6 @@ if __name__ == '__main__':
     plottable = df.groupby(['image_id','category']).size().reset_index(name='count').groupby(['category','count']).size().reset_index(name='count_c').pivot(index='count', columns='category', values='count_c')
     plottable.plot(grid=True,marker='o',markevery=5,xticks=np.arange(0,20,step=3),ylabel='number of annotations',xlabel='annotations per image')
     plt.show()
-    square_mean_loss('K:/dataset/flir_dataset/val/thermal_annotations.json','K:/results/test_flir_evaluation_0005/detection_results.json')
+    #square_mean_loss('K:/dataset/flir_dataset/val/thermal_annotations.json','K:/results/test_flir_evaluation_0005/detection_results.json')
+
     #mse_by_det_num('K:/dataset/flir_dataset/val/thermal_annotations.json','K:/results/test_kaist_evaluation_0005/detection_results.json',0.3590)

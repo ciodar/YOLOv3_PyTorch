@@ -174,22 +174,16 @@ class Darknet(nn.Module):
                 layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
                 if len(layers) == 1:
                     x = outputs[layers[0]]
-                elif len(layers) == 2:
-                    x1 = outputs[layers[0]]
-                    x2 = outputs[layers[1]]
-                    x = torch.cat((x1, x2), 1)
-                elif len(layers) == 3:
-                    x1 = outputs[layers[0]]
-                    x2 = outputs[layers[1]]
-                    x3 = outputs[layers[2]]
-                    x = torch.cat((x1,x2,x3),1)
+                else:
+                    o = [outputs[i] for i in layers]
+                    x = torch.cat(o,1)
                 outputs[ind] = x
             else:
                 print('unknown type %s' % (block['type']))
         if self.condition:
             return (x if outno == 0 else out_boxes),outputs[len(outputs)-1]
         else:
-            return x if outno == 0 else out_boxes
+            return x
 
     def print_network(self):
         print_cfg(self.blocks)

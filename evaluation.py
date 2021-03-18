@@ -15,8 +15,7 @@ def valid(datacfg, cfgfile, modelfile, outfile, condition=False, cuda_device='cu
     options = read_data_cfg(datacfg)
     valid_file = options['valid']
     print('Validate with the list file: ',valid_file)
-    name_list = options['names']
-    names = load_class_names(name_list)
+    names = load_class_names(options['names'])
     #trainset_path = options['trainset_path']
 
     outpath = '/'.join(outfile.split('/')[:-1])
