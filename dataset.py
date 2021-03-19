@@ -3,19 +3,21 @@
 
 import os
 import random
+import pandas as pd
 import torch
+import json
 import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
-from utils import read_truths_args, read_truths
+from utils import read_truths_args, read_truths,read_json_truths_args
 from image import *
+import pathlib as pl
 
 class listDataset(Dataset):
     def __init__(self, root, shape=None, shuffle=True, crop=False, jitter=0.3, hue=0.1, saturation=1.5, exposure=1.5,
                  transform=None, target_transform=None, train=False, seen=0, batch_size=64, num_workers=4,condition=False):
-       with open(root, 'r') as file:
-           self.lines = file.readlines()
-
+       self.annotations = None
+       self.read_dataset(root)
        if shuffle:
            random.shuffle(self.lines)
 
@@ -47,15 +49,18 @@ class listDataset(Dataset):
         return self.lines[index]
 
     def read_dataset(self,path):
-        realpath = os.path.realpath(path)
-        with open(realpath, 'r') as file:
-            valid_path = os.path.dirname(realpath)
-            if(path.split('.')[-1]=='json'):
+        plpath = pl.Path(path)
+        with plpath.open('r') as file:
+            dirpath = plpath.parent
+            if(plpath.suffix == '.json'):
                 data = json.load(file)
-                valid_images = [os.path.join(valid_path,*image['file_name'].split('/')) for image in data['images']]
+                imgdata = pd.DataFrame(data['images'])[['id','file_name','width','height']]
+                anndata = data['annotations']
+                imgdata['annotations'] = imgdata['id'].apply(lambda x:[ann for ann in anndata if ann['image_id']==x])
+                self.annotations = imgdata
+                self.lines = [pl.Path.joinpath(dirpath,fn) for fn in imgdata['file_name']]
             else:
-                valid_images = file.readlines()
-        return valid_images
+                self.lines = file.readlines()
 
     def get_different_scale(self):
         if self.seen < 50*self.batch_size:
@@ -101,7 +106,7 @@ class listDataset(Dataset):
     def __getitem__(self, index):
         # print('get item')
         assert index <= len(self), 'index range error'
-        imgpath = self.lines[index].rstrip()
+        imgpath = self.lines[index]
 
         img_id = os.path.basename(imgpath).split('.')[0]
 
@@ -120,14 +125,21 @@ class listDataset(Dataset):
                 img, org_w, org_h = letterbox_image(img, self.shape[0], self.shape[1]), img.width, img.height
     
             # labpath = imgpath.replace('images', 'labels').replace('images', 'Annotations').replace('.jpg', '.txt').replace('.png','.txt')
-            labpath = imgpath.replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png','.txt').replace('.tif','.txt')
+            if self.annotations is None:
+                labpath = imgpath.replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png','.txt').replace('.tif','.txt')
+                try:
+                    tmp = torch.from_numpy(read_truths_args(labpath, 8.0 / img.width).astype('float32'))
+                except Exception:
+                    tmp = torch.zeros(1, 5)
+                # tmp = torch.from_numpy(read_truths(labpath))
+            else:
+                try:
+                    tmp = torch.from_numpy(read_json_truths_args(self.annotations.to_numpy()[index,:],8.0/img.width).astype('float32'))
+                except Exception:
+                    tmp = torch.zeros(1, 5)
             label = torch.zeros(50*5)
             #if os.path.getsize(labpath):
             #tmp = torch.from_numpy(np.loadtxt(labpath))
-            try:
-                tmp = torch.from_numpy(read_truths_args(labpath, 8.0/img.width).astype('float32'))
-            except Exception:
-                tmp = torch.zeros(1,5)
             #tmp = torch.from_numpy(read_truths(labpath))
             tmp = tmp.view(-1)
             tsz = tmp.numel()

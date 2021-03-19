@@ -24,23 +24,20 @@ def density(args):
     img = cv2.imread(args.images)
     sized = cv2.resize(img, (m.width, m.height))
     sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
-    use_cuda = torch.cuda.is_available() and (True if use_cuda is None else use_cuda)
+    use_cuda = torch.cuda.is_available() and (True if args.cuda is None else args.cuda)
     cuda_device = torch.device("cuda" if use_cuda else "cpu")
     if use_cuda:
         m.cuda(cuda_device)
-        print("Using device #", device_n, " (", get_device_name(cuda_device), ")")
+        #print("Using device #", device_n, " (", get_device_name(cuda_device), ")")
     m.eval()
 
     valid_dataset = dataset.listDataset(train_file, shape=(m.width, m.height),
                                         shuffle=False,
                                         transform=transforms.Compose([
                                             transforms.ToTensor(),
-                                        ]),
-                                        target_transform=transforms.Compose([
-                                            transforms.ToTensor()
                                         ]))
     kwargs = {'num_workers': 4, 'pin_memory': True}
-    valid_batchsize = 10
+    valid_batchsize = 2
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=valid_batchsize, shuffle=False, **kwargs)
     output = []

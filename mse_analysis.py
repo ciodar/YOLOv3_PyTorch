@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 import pandas as pd
 import pathlib as pl
+from utils import read_data_cfg
 
 def count_people(json_path):
 
@@ -21,6 +22,41 @@ def count_people(json_path):
         #g = df.groupby(['image_id','category']).size().reset_index(name='count').groupby(['count','category']).size().reset_index(name='count_c')
         #g['count_c'] = g[['count_c']].apply(lambda x: x/x.sum()*100)
         return(df)
+
+def count_kaist_people(data_path):
+    options = read_data_cfg(data_path)
+    train_file = options['valid']
+    #output_path = 'K:/dataset/flir_output dataset/'
+    #category_dict_path = 'K:/dataset/flir dataset/train/thermal_annotations.json'
+    data = []
+    with open(train_file) as tf:
+        images = tf.readlines()
+    for i in images:
+        labpath = i.replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png','.txt').replace('.tif', '.txt')
+        txt = pl.Path(labpath.rstrip())
+        if txt.exists():
+            with txt.open('r') as t:
+                size = len(t.readlines())
+            data.append({'file_name':i.rstrip(),'size':size})
+    df = pd.DataFrame(data).groupby('size').count()
+    df.plot(grid=True,marker='o',markevery=2,ylabel='number of annotations',xlabel='annotations per image')
+    plt.xlabel('annotations per image')
+    plt.ylabel('number of annotations')
+    plt.legend(['person'])
+    plt.show()
+    # # Close file
+    # rd.close()
+    # data = json.load(json_file)
+    # categories = ['person','car','bicycle','dog']
+    # cat = pd.DataFrame(data['categories']).rename(columns={'id':'category_id','name':'category'})
+    # #for c in categories:
+    # annotations = pd.DataFrame(data['annotations'])
+    # images = pd.DataFrame(data['images']).rename(columns={'id':'image_id'})
+    # df = annotations.merge(cat,how='left',on=['category_id'])
+    # #df['category'] = df['category'].fillna('empty')
+    # #g = df.groupby(['image_id','category']).size().reset_index(name='count').groupby(['count','category']).size().reset_index(name='count_c')
+    # #g['count_c'] = g[['count_c']].apply(lambda x: x/x.sum()*100)
+    # return(df)
 
 def square_mean_loss(annotation_json,detection_json):
     with open(annotation_json) as ann_file:
@@ -133,17 +169,18 @@ def create_train_file():
 
 
 if __name__ == '__main__':
-    json_path = 'D:/dataset/flir_dataset/train/thermal_annotations.json'
-    df = count_people(json_path)
-    df.groupby('category').size().plot(kind='bar',rot=45,ylabel='number of annotations')
-        #plt.plot(g[g.category==cat]['count'],g[g.category==cat].count_c,label=cat,marker='o',markevery=5)
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.show()
-    #Group detections by
-    plottable = df.groupby(['image_id','category']).size().reset_index(name='count').groupby(['category','count']).size().reset_index(name='count_c').pivot(index='count', columns='category', values='count_c')
-    plottable.plot(grid=True,marker='o',markevery=5,xticks=np.arange(0,20,step=3),ylabel='number of annotations',xlabel='annotations per image')
-    plt.show()
+    count_kaist_people('data/kaist.data')
+    # json_path = 'D:/dataset/flir_dataset/train/thermal_annotations.json'
+    # df = count_people(json_path)
+    # df.groupby('category').size().plot(kind='bar',rot=45,ylabel='number of annotations')
+    #     #plt.plot(g[g.category==cat]['count'],g[g.category==cat].count_c,label=cat,marker='o',markevery=5)
+    # axes = plt.gca()
+    # axes.yaxis.grid()
+    # plt.show()
+    # #Group detections by
+    # plottable = df.groupby(['image_id','category']).size().reset_index(name='count').groupby(['category','count']).size().reset_index(name='count_c').pivot(index='count', columns='category', values='count_c')
+    # plottable.plot(grid=True,marker='o',markevery=5,xticks=np.arange(0,20,step=3),ylabel='number of annotations',xlabel='annotations per image')
+    # plt.show()
     #square_mean_loss('K:/dataset/flir_dataset/val/thermal_annotations.json','K:/results/test_flir_evaluation_0005/detection_results.json')
 
     #mse_by_det_num('K:/dataset/flir_dataset/val/thermal_annotations.json','K:/results/test_kaist_evaluation_0005/detection_results.json',0.3590)

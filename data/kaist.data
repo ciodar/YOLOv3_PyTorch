@@ -1,6 +1,6 @@
 classes= 1
-train  = data/train_thermal.txt
-valid  = data/test_thermal.txt
+train  = data/train_thermal_local.txt
+valid  = data/test_thermal_local.txt
 names = data/kaist_person.names
 backup = backup
 logfile = backup/logtrain.txt
