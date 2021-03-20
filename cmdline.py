@@ -12,7 +12,10 @@ def arg_parse():
     parser.add_argument("--det", dest = 'det', help =
     "Image / Directory to store detections to",
                         default = "K:/output", type = str)
-    parser.add_argument("--bs", dest = "bs", help = "Batch size", default = 1)
+    parser.add_argument("--set", dest='set', help=
+    "Subset of the dataset to be evaluated (train/valid/test)",
+                        default="train", type=str)
+    parser.add_argument("--bs", dest = "bs", help = "Batch size", default = 1,type=int)
     parser.add_argument("--confidence", dest = "confidence", help = "Object Confidence to filter predictions", default = 0.5)
     parser.add_argument("--nms_thresh", dest = "nms_thresh", help = "NMS Threshhold", default = 0.4)
     parser.add_argument("--cfg", dest = 'cfgfile', help ="Config file",default = "cfg/yolov3_flir.cfg", type = str)
