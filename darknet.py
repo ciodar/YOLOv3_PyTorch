@@ -169,21 +169,23 @@ class Darknet(nn.Module):
                 beta = beta.unsqueeze(2).unsqueeze(3).expand_as(x)
                 x = (gamma * x) + beta
                 outputs[ind] = x
-            elif block['type'] == 'merge':
-                layers = block['layers'].split(',')
-                layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
-                if len(layers) == 1:
-                    x = outputs[layers[0]]
-                else:
-                    o = [outputs[i] for i in layers]
-                    x = torch.cat(o,1)
-                outputs[ind] = x
+            # elif block['type'] == 'merge':
+            #     layers = block['layers'].split(',')
+            #     layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
+            #     if len(layers) == 1:
+            #         x = outputs[layers[0]]
+            #     else:
+            #         o = [outputs[i] for i in layers]
+            #         x = torch.cat(o,1)
+            #     outputs[ind] = x
+            elif block['type'] == 'empty':
+                outputs[ind] = outputs[ind-1]
             else:
                 print('unknown type %s' % (block['type']))
         if self.condition:
             return (x if outno == 0 else out_boxes),outputs[len(outputs)-1]
         else:
-            return x
+            return (x if outno == 0 else out_boxes)
 
     def print_network(self):
         print_cfg(self.blocks)
@@ -379,20 +381,26 @@ class Darknet(nn.Module):
                     out_filters.append(prev_filters)
                     out_strides.append(prev_stride)
                     models.append(EmptyModule())
-            elif block['type'] == 'merge':
-                layers = block['layers'].split(',')
-                ind = len(models)
-                layers = [int(i) if int(i) > 0 else int(i)+ind for i in layers]
-                if len(layers) == 1:
-                    prev_filters = out_filters[layers[0]]
-                    prev_stride = out_strides[layers[0]]
-                elif len(layers) == 2:
-                    assert(layers[0] == ind - 1)
-                    prev_filters = out_filters[layers[0]] + out_filters[layers[1]]
-                    prev_stride = out_strides[layers[0]]
+            # elif block['type'] == 'merge':
+            #     layers = block['layers'].split(',')
+            #     ind = len(models)
+            #     layers = [int(i) if int(i) > 0 else int(i)+ind for i in layers]
+            #     if len(layers) == 1:
+            #         prev_filters = out_filters[layers[0]]
+            #         prev_stride = out_strides[layers[0]]
+            #     elif len(layers) == 2:
+            #         assert(layers[0] == ind - 1)
+            #         prev_filters = out_filters[layers[0]] + out_filters[layers[1]]
+            #         prev_stride = out_strides[layers[0]]
+            #     out_filters.append(prev_filters)
+            #     out_strides.append(prev_stride)
+            #     models.append(EmptyModule())
+            elif block['type'] == 'empty':
+                models.append(EmptyModule())
+                prev_filters = out_filters[ind-1]
+                prev_stride = out_strides[ind-1]
                 out_filters.append(prev_filters)
                 out_strides.append(prev_stride)
-                models.append(EmptyModule())
             else:
                 print('unknown type %s' % (block['type']))
     
@@ -472,8 +480,8 @@ class Darknet(nn.Module):
                 pass
             elif block['type'] == 'relu':
                 pass
-            elif block['type']=='merge':
-                pass
+            elif block['type']=='empty':
+                 pass
             else:
                 print('unknown type %s' % (block['type']))
         # print('load having connected %d variable x 4 = %d bytes' % (start, start * 4))
@@ -539,6 +547,8 @@ class Darknet(nn.Module):
             elif block['type'] == 'leaky':
                 pass
             elif block['type'] == 'relu':
+                pass
+            elif block['type'] == 'empty':
                 pass
             else:
                 print('unknown type %s' % (block['type']))
@@ -613,6 +623,8 @@ class Darknet(nn.Module):
             elif block['type'] == 'leaky':
                 pass
             elif block['type'] == 'relu':
+                pass
+            elif block['type'] == 'empty':
                 pass
             else:
                 print('unknown type %s' % (block['type']))
