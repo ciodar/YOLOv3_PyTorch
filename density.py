@@ -38,7 +38,7 @@ def density(args):
                                         transform=transforms.Compose([
                                             transforms.ToTensor(),
                                         ]))
-    kwargs = {'num_workers': 2, 'pin_memory': False}
+    kwargs = {'num_workers': 4, 'pin_memory': True}
     assert args.bs > 0
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=args.bs, shuffle=False, **kwargs)
@@ -47,21 +47,21 @@ def density(args):
 
     for count_loop, (data, target, org_w, org_h) in enumerate(tqdm.tqdm(valid_loader)):
         if use_cuda:
-            print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
+            #print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
             data = data.cuda(cuda_device)
-        output = convert2cpu(m(data))
+        output = m(data).detach()
         fm.append(output)
-        gt.append(target)
+        gt.append(target.detach())
 
-    output = torch.stack(output)
+    output = torch.stack(fm)
     gt = torch.stack(gt)
     # n_batches,batch,depth,height,width
-    torch.save(output, args.det)
-    torch.save(output, str(gt_file))
+    torch.save(output, str(fm_file))
+    torch.save(target, str(gt_file))
 
 
 if __name__ == '__main__':
     args = cmdline.arg_parse()
     density(args)
-    tensor = torch.load(args.det)
-    print(tensor)
+    #tensor = torch.load(args.det)
+    #print(tensor)
