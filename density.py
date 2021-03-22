@@ -6,6 +6,7 @@ from torchvision import transforms
 import dataset
 import tqdm
 import pathlib as pl
+from densitynetwork import DensityNet
 
 def density(args):
     options = read_data_cfg(args.images)
@@ -61,7 +62,12 @@ def density(args):
 
 
 if __name__ == '__main__':
-    args = cmdline.arg_parse()
-    density(args)
-    #tensor = torch.load(args.det)
+    #args = cmdline.arg_parse()
+    #density(args)
+    tensorpath = str(pl.Path('K:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_train.pt'))
+    tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     #print(tensor)
+    m = DensityNet()
+    m.eval()
+    output = m(tensor[0].unsqueeze(0))
+    print(output)
