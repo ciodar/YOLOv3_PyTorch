@@ -361,7 +361,7 @@ def read_truths_count(lab_path, min_box_scale):
 def read_json_truths_count(annotations_df, min_box_scale):
     count = 0
     for a in annotations_df[4]:
-        if a['bbox'][3] / annotations_df[2] < min_box_scale:
+        if a['bbox'][3] / annotations_df[2] < min_box_scale or a['category_id']!=1:
             continue
         count+=1
     return count

@@ -1,5 +1,7 @@
 import torch.nn as nn
+
 import torch.nn.functional as F
+
 
 class DensityNet(nn.Module):
     def __init__(self):
@@ -10,9 +12,10 @@ class DensityNet(nn.Module):
         self.fc3 = nn.Linear(1024, 1)
 
     def forward(self, x):
-        out = F.max_pool2d(nn.ReLU(self.conv1(x)),2)
+        out = F.max_pool2d(F.relu(self.conv1(x)),2)
         out = out.view(-1, 1024 * 4 * 5)
-        out = nn.ReLU(self.fc1(out))
-        out = nn.ReLU(self.fc2(out))
-        out = nn.ReLU(self.fc3(out))
+        out = F.relu(self.fc1(out))
+        out = F.relu(self.fc2(out))
+        out = F.relu(self.fc3(out))
         return out
+

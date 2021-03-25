@@ -1,6 +1,6 @@
 classes= 3
-train  = /data/dcioni/FLIR_ADAS_1_3/train/thermal_annotations.json
-valid  = /data/dcioni/FLIR_ADAS_1_3/train/thermal_annotations.json
+train  = D:/dataset/flir_dataset/train/thermal_annotations.json
+valid  = D:/dataset/flir_dataset/val/thermal_annotations.json
 names = data/flir.names
 backup = backup
 logfile = backup/logtrain.txt
