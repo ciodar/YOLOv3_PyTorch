@@ -114,9 +114,10 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,device):
             loss_train += loss.item()  # <9>
 
         if epoch == 1 or epoch % 10 == 0:
-            print('{} Epoch {}, Training loss {}'.format(
+            print('{} Epoch {}, Training loss {} GPU usage {}'.format(
                 datetime.datetime.now(), epoch,
-                loss_train / len(train_loader)))  # <10>
+                loss_train / len(train_loader),
+                torch.cuda.memory_allocated(device)))  # <10>
 
 def validate(model,args):
     options = read_data_cfg(args.images)
