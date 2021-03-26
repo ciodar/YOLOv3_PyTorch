@@ -91,6 +91,7 @@ def train(args):
         train_loader=train_loader,
         device=device
     )
+    return model
 
 def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,device):
 
@@ -123,7 +124,7 @@ def validate(model,args):
               else torch.device('cpu'))
     print(f"Validating on device {device}.")
     train_path = str(pl.Path(options['train']))
-    train_label_path = str(pl.Path.joinpath(train_path.parent(), train_path.stem() + '_labels' + train_path.ext()))
+    train_label_path = str(pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix))
     t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
     t2 = torch.load(train_label_path, map_location=device).reshape(8862)
     trainset = list(zip(t1, t2))
@@ -132,7 +133,7 @@ def validate(model,args):
                                 shuffle=False)  # <1>
 
     valid_path = str(pl.Path(options['valid']))
-    valid_label_path = str(pl.Path.joinpath(train_path.parent(), train_path.stem() + '_labels' + train_path.ext()))
+    valid_label_path = str(pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix))
 
     v1 = torch.load(valid_path, map_location=device).reshape(8862, 1792, 8, 10)
     v2 = torch.load(valid_label_path, map_location=device).reshape(8862)
@@ -164,7 +165,8 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     #3. training
-    train(args)
+    model = train(args)
+    validate(model,args)
 
 
 
