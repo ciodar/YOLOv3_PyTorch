@@ -34,4 +34,6 @@ def arg_parse():
     parser.add_argument("--device", dest = 'device',
                         help = "Choose the device to be used",
                         default = "cuda:0", type = str)
+    parser.add_argument('--epoch', '-e', type=int, default=50,help='How many epoch we train, default is 30')
+    parser.add_argument('--lr', type=float, default=1e-3, help='How many epoch we train, default is 30')
     return parser.parse_args()

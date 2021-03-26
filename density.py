@@ -1,6 +1,6 @@
 import cmdline
 from darknet import Darknet
-from utils import read_data_cfg,convert2cpu
+from utils import read_data_cfg
 import torch
 from torchvision import transforms
 import dataset
@@ -11,7 +11,6 @@ import torch.optim as optim
 import datetime
 import torch.utils.data as D
 import torch.nn as nn
-from sklearn.metrics import mean_squared_error
 
 def density(args):
     options = read_data_cfg(args.images)
@@ -66,6 +65,32 @@ def density(args):
     # n_batches,batch,depth,height,width
     # torch.save(fm, str(fm_file))
     torch.save(gt, str(gt_file))
+def train(args):
+    options = read_data_cfg(args.images)
+    device = (torch.device('cuda') if torch.cuda.is_available()
+              else torch.device('cpu'))
+    print(f"Training on device {device}.")
+    train_path = pl.Path(options['train'])
+    train_label_path = pl.Path.joinpath(train_path.parent,train_path.stem+'_labels'+train_path.suffix)
+    t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
+    t2 = torch.load(train_label_path, map_location=device).reshape(8862)
+    trainset = list(zip(t1, t2))
+
+    train_loader = D.DataLoader(trainset, batch_size=64,
+                                shuffle=True)  # <1>
+
+    model = DensityNet(512).to(device=device)  # <2>
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr)  # <3>
+    loss_fn = nn.MSELoss()  # <4>
+
+    training_loop(  # <5>
+        n_epochs=args.epoch,
+        optimizer=optimizer,
+        model=model,
+        loss_fn=loss_fn,
+        train_loader=train_loader,
+        device=device
+    )
 
 def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,device):
 
@@ -92,27 +117,45 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,device):
                 datetime.datetime.now(), epoch,
                 loss_train / len(train_loader)))  # <10>
 
-def validate(model, train_loader, val_loader,device):
+def validate(model,args):
+    options = read_data_cfg(args.images)
+    device = (torch.device('cuda') if torch.cuda.is_available()
+              else torch.device('cpu'))
+    print(f"Validating on device {device}.")
+    train_path = str(pl.Path(options['train']))
+    train_label_path = str(pl.Path.joinpath(train_path.parent(), train_path.stem() + '_labels' + train_path.ext()))
+    t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
+    t2 = torch.load(train_label_path, map_location=device).reshape(8862)
+    trainset = list(zip(t1, t2))
+
+    train_loader = D.DataLoader(trainset, batch_size=64,
+                                shuffle=False)  # <1>
+
+    valid_path = str(pl.Path(options['valid']))
+    valid_label_path = str(pl.Path.joinpath(train_path.parent(), train_path.stem() + '_labels' + train_path.ext()))
+
+    v1 = torch.load(valid_path, map_location=device).reshape(8862, 1792, 8, 10)
+    v2 = torch.load(valid_label_path, map_location=device).reshape(8862)
+    valset = list(zip(v1, v2))
+    val_loader = torch.utils.data.DataLoader(valset, batch_size=64,
+                                             shuffle=False)
+
     for name, loader in [("train", train_loader), ("val", val_loader)]:
         mse = 0
         total = 0
         with torch.no_grad():
             for imgs, labels in loader:
                 imgs = imgs.to(device=device)
-                labels = labels.to(device=device)
+                labels = labels.to(device=device).float()
                 outputs = model(imgs)
                 total += labels.shape[0]
-                mse += (outputs-labels)**2
+                mse += ((outputs-labels)**2).sum()
         print("Accuracy {}: {:.2f}".format(name , mse / total))
 
 if __name__ == '__main__':
+    args = cmdline.arg_parse()
     #1. get tensor
-    # args = cmdline.arg_parse()
     # density(args)
-    tensorpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_train.pt'))
-    labelpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/ground_truth_train_person_kaist_results.pt'))
-    v_tensorpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_valid.pt'))
-    v_labelpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/ground_truth_valid_person_kaist_results.pt'))
     #2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -121,33 +164,11 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     #3. training
-    device = (torch.device('cuda') if torch.cuda.is_available()
-              else torch.device('cpu'))
-    print(f"Training on device {device}.")
-    t1 = torch.load(tensorpath,map_location=device).reshape(8862,1792,8,10)
-    t2 = torch.load(labelpath,map_location=device).reshape(8862)
-    trainset = list(zip(t1, t2))
+    train(args)
 
-    train_loader = D.DataLoader(trainset, batch_size=64,
-                                shuffle=True)  # <1>
 
-    model = DensityNet(512).to(device=device)  # <2>
-    optimizer = optim.SGD(model.parameters(), lr=1e-2)  # <3>
-    loss_fn = nn.MSELoss()  # <4>
 
-    training_loop(  # <5>
-        n_epochs=100,
-        optimizer=optimizer,
-        model=model,
-        loss_fn=loss_fn,
-        train_loader=train_loader,
-        device=device
-    )
 
-    v1 = torch.load(tensorpath, map_location=device).reshape(8862, 1792, 8, 10)
-    v2 = torch.load(labelpath, map_location=device).reshape(8862)
-    valset = list(zip(t1, t2))
-    val_loader = torch.utils.data.DataLoader(valset, batch_size=64,
-                                             shuffle=False)
 
-    validate(model, train_loader, val_loader,device)
+
+

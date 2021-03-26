@@ -1,0 +1,7 @@
+classes= 1
+train  = D:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_train.pt
+valid  = D:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_valid.pt
+names = data/kaist_person.names
+backup = backup
+logfile = backup/logtrain.txt
+
