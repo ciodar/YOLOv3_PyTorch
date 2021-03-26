@@ -67,13 +67,13 @@ def density(args):
     # torch.save(fm, str(fm_file))
     torch.save(gt, str(gt_file))
 
-def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
+def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,device):
 
     for epoch in range(1, n_epochs + 1):  # <2>
         loss_train = 0.0
         for imgs, labels in train_loader:  # <3>
             imgs = imgs.to(device=device)
-            labels = labels.to(device=device)
+            labels = labels.to(device=device).view(-1,1).float()
 
             outputs = model(imgs)  # <4>
 
@@ -92,12 +92,14 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
                 datetime.datetime.now(), epoch,
                 loss_train / len(train_loader)))  # <10>
 
-def validate(model, train_loader, val_loader):
+def validate(model, train_loader, val_loader,device):
     for name, loader in [("train", train_loader), ("val", val_loader)]:
         mse = 0
         total = 0
         with torch.no_grad():
             for imgs, labels in loader:
+                imgs = imgs.to(device=device)
+                labels = labels.to(device=device)
                 outputs = model(imgs)
                 total += labels.shape[0]
                 mse += (outputs-labels)**2
@@ -109,6 +111,8 @@ if __name__ == '__main__':
     # density(args)
     tensorpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_train.pt'))
     labelpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/ground_truth_train_person_kaist_results.pt'))
+    v_tensorpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/kaist_results_valid.pt'))
+    v_labelpath = str(pl.Path('D:/results/density/flir dataset/fm_kaist_density_10_8/ground_truth_valid_person_kaist_results.pt'))
     #2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -123,15 +127,11 @@ if __name__ == '__main__':
     t1 = torch.load(tensorpath,map_location=device).reshape(8862,1792,8,10)
     t2 = torch.load(labelpath,map_location=device).reshape(8862)
     trainset = list(zip(t1, t2))
-    v1 = torch.load(tensorpath,map_location=device).reshape(8862,1792,8,10)
-    v2 = torch.load(labelpath,map_location=device).reshape(8862)
-    valset= list(zip(t1,t2))
+
     train_loader = D.DataLoader(trainset, batch_size=64,
                                 shuffle=True)  # <1>
-    val_loader = torch.utils.data.DataLoader(valset, batch_size=64,
-                                             shuffle=False)
 
-    model = DensityNet()  # <2>
+    model = DensityNet(512).to(device=device)  # <2>
     optimizer = optim.SGD(model.parameters(), lr=1e-2)  # <3>
     loss_fn = nn.MSELoss()  # <4>
 
@@ -141,6 +141,13 @@ if __name__ == '__main__':
         model=model,
         loss_fn=loss_fn,
         train_loader=train_loader,
+        device=device
     )
 
-    validate(model, train_loader, val_loader)
+    v1 = torch.load(tensorpath, map_location=device).reshape(8862, 1792, 8, 10)
+    v2 = torch.load(labelpath, map_location=device).reshape(8862)
+    valset = list(zip(t1, t2))
+    val_loader = torch.utils.data.DataLoader(valset, batch_size=64,
+                                             shuffle=False)
+
+    validate(model, train_loader, val_loader,device)
