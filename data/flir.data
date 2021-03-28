@@ -1,6 +1,6 @@
 classes= 3
-train  = D:/dataset/flir_dataset/train/thermal_annotations.json
-valid  = D:/dataset/flir_dataset/val/thermal_annotations.json
+train  = data/flir_train_local.txt
+valid  = data/flir_test.txt
 names = data/flir.names
 backup = backup
 logfile = backup/logtrain.txt

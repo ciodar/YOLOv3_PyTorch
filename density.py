@@ -18,7 +18,7 @@ def density(args):
     eval_file = options[args.set]
     out_path = pl.Path(args.det)
     fm_file = (pl.Path.joinpath(out_path.parent, out_path.name))
-    gt_file = (pl.Path.joinpath(out_path.parent, 'ground_truth_' + args.set + '_' + fm_file.name))
+    gt_file = (pl.Path.joinpath(out_path.parent, fm_file.stem + '_' + args.set + '_labels' + fm_file.suffix))
     if not fm_file.parent.exists() or not gt_file.parent.exists():
         raise Exception("Selected output path does not exist")
 
@@ -51,7 +51,7 @@ def density(args):
     gt = []
 
     pbar = tqdm.tqdm(valid_loader)
-    with torch.no_grad:
+    with torch.no_grad():
         for count_loop, (data, target, org_w, org_h) in enumerate(pbar):
             if use_cuda:
                 pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})

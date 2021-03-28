@@ -318,3 +318,24 @@ class densityDataset(Dataset):
         else:
             return (img, label, org_w, org_h)
 
+def json_to_txt(json_path):
+    jpath = pl.Path(json_path)
+    with jpath.open('r') as jfile:
+        data = json.load(jfile)
+        anndata = pd.DataFrame(data['annotations'])
+        anndata[['bb_x','bb_y','bb_w','bb_h']] = pd.DataFrame(anndata.bbox.tolist())
+        anndata['bb_x']/=640
+        anndata['bb_y']/=512
+        anndata['bb_w']/=640
+        anndata['bb_h']/=512
+        for img in data['images']:
+            id = img['id']
+            tpath = jpath.parent.joinpath(img['file_name'])
+            tpath = pl.Path.joinpath(tpath.parent,tpath.stem+'.txt')
+            lines = anndata[anndata.image_id == id]
+            str = lines.to_string(header=False,index=False,columns=['category_id','bb_x','bb_y','bb_w','bb_h'])
+            with tpath.open('w') as text:
+                text.write(str)
+            print(img)
+if __name__ == '__main__':
+    json_to_txt('D:/dataset/flir_dataset/val/thermal_annotations.json')
