@@ -12,6 +12,7 @@ import datetime
 import torch.utils.data as D
 import torch.nn as nn
 
+
 def density(args):
     options = read_data_cfg(args.images)
     assert args.set in ['train', 'valid', 'test']
@@ -33,8 +34,10 @@ def density(args):
         m.load_weights(args.weightsfile)
     use_cuda = torch.cuda.is_available() and (True if args.cuda is None else args.cuda)
     cuda_device = torch.device(args.device if use_cuda else "cpu")
+    fm = torch.empty(2, 1792, 16, 20).to(cuda_device)
+    gt = torch.empty(2).to(cuda_device)
     if use_cuda:
-        m.cuda(cuda_device)
+        m.to(cuda_device)
         # print("Using device #", cuda_device, " (", get_device_name(cuda_device), ")")
     m.eval()
 
@@ -43,12 +46,10 @@ def density(args):
                                            transform=transforms.Compose([
                                                transforms.ToTensor(),
                                            ]))
-    kwargs = {'num_workers': 4, 'pin_memory': True}
+    kwargs = {'num_workers': 2, 'pin_memory': True}
     assert args.bs > 0
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset, batch_size=args.bs, shuffle=False, **kwargs)
-    fm = []
-    gt = []
 
     pbar = tqdm.tqdm(valid_loader)
     with torch.no_grad():
@@ -57,22 +58,19 @@ def density(args):
                 pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
                 # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
                 data = data.cuda(cuda_device)
-            output = m(data).detach()
-            fm.append(output)
-            gt.append(target.detach())
-
-    fm = torch.stack(fm)
-    gt = torch.stack(gt)
+            fm = torch.cat((fm, m(data).clone().detach().to(cuda_device)))
+            gt = torch.cat((gt, target.clone().detach().to(cuda_device)))
+            del data, target
     # n_batches,batch,depth,height,width
     torch.save(fm, str(fm_file))
     torch.save(gt, str(gt_file))
 
 
-def train(args):
+def train(model,args):
     options = read_data_cfg(args.images)
     device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
-    print(f"Training on device {device}.")
+    print(f"Training on device {device}, lr={args.lr}.")
     train_path = pl.Path(options['train'])
     train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
     t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
@@ -82,7 +80,7 @@ def train(args):
     train_loader = D.DataLoader(trainset, batch_size=64,
                                 shuffle=True)  # <1>
 
-    model = DensityNet(512).to(device=device)  # <2>
+    model.to(device=device)  # <2>
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)  # <3>
     loss_fn = nn.MSELoss()  # <4>
@@ -135,6 +133,8 @@ def validate(model, args):
     t2 = torch.load(train_label_path, map_location=device).reshape(8862)
     trainset = list(zip(t1, t2))
 
+    model.to(device=device)  # <2>
+
     train_loader = D.DataLoader(trainset, batch_size=64,
                                 shuffle=False)  # <1>
 
@@ -164,7 +164,7 @@ def validate(model, args):
 if __name__ == '__main__':
     args = cmdline.arg_parse()
     # 1. get tensor
-    density(args)
+    # density(args)
     # 2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -173,12 +173,6 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     # 3. training
-    # model = train(args)
-    # validate(model,args)
-
-
-
-
-
-
-
+    model = DensityNet()
+    train(model,args)
+    validate(model,args)

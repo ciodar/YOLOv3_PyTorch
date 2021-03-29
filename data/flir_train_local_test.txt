@@ -1,4 +1,0 @@
-D:/dataset/flir_dataset/train/thermal_8_bit/FLIR_00001.jpeg
-D:/dataset/flir_dataset/train/thermal_8_bit/FLIR_00002.jpeg
-D:/dataset/flir_dataset/train/thermal_8_bit/FLIR_00003.jpeg
-D:/dataset/flir_dataset/train/thermal_8_bit/FLIR_00004.jpeg
