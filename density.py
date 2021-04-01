@@ -11,9 +11,14 @@ import torch.optim as optim
 import datetime
 import torch.utils.data as D
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
+train_losses=[]
+train_accu=[]
+eval_losses=[]
+eval_accu=[]
 
-def density(args):
+def feature_extraction(args):
     options = read_data_cfg(args.images)
     assert args.set in ['train', 'valid', 'test']
     eval_file = options[args.set]
@@ -65,20 +70,55 @@ def density(args):
     torch.save(fm, str(fm_file))
     torch.save(gt, str(gt_file))
 
-
-def train(model,args):
-    options = read_data_cfg(args.images)
+def density(args):
+    model = DensityNet()
     device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
-    print(f"Training on device {device}, lr={args.lr}.")
+    print(f"Training on device {device}, lr={args.lr:e}.")
+    options = read_data_cfg(args.images)
     train_path = pl.Path(options['train'])
+    valid_path = pl.Path(options['valid'])
+
+    # train loader
     train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
     t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
     t2 = torch.load(train_label_path, map_location=device).reshape(8862)
     trainset = list(zip(t1, t2))
-
     train_loader = D.DataLoader(trainset, batch_size=64,
-                                shuffle=True)  # <1>
+                                shuffle=True)
+
+    # test loader
+    valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
+    v1 = torch.load(valid_path, map_location=device).reshape(1366, 1792, 8, 10)
+    v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
+    valset = list(zip(v1, v2))
+    valid_loader = torch.utils.data.DataLoader(valset, batch_size=64,
+                                             shuffle=False)
+
+    # retrieve weights
+    # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
+    train(model, args,train_loader,valid_loader,device)
+    #if args.save:
+    #    torch.save(model.state_dict(), pl.Path.joinpath(train_path.parent, 'trained_model.pt'))
+    plt.plot(train_accu, '-o')
+    plt.plot(eval_accu, '-o')
+    plt.xlabel('epoch')
+    plt.ylabel('accuracy')
+    plt.legend(['Train', 'Valid'])
+    plt.title('Train vs Valid Accuracy')
+
+    plt.show()
+
+    plt.plot(train_losses, '-o')
+    plt.plot(eval_losses, '-o')
+    plt.xlabel('epoch')
+    plt.ylabel('losses')
+    plt.legend(['Train', 'Valid'])
+    plt.title('Train vs Valid Losses')
+
+    plt.show()
+
+def train(model,args,train_loader,valid_loader,device):
 
     model.to(device=device)  # <2>
     model.train()
@@ -91,19 +131,23 @@ def train(model,args):
         model=model,
         loss_fn=loss_fn,
         train_loader=train_loader,
+        valid_loader = valid_loader,
         device=device
     )
+
     return model
 
 
-def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device):
+def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader, device):
     for epoch in range(1, n_epochs + 1):  # <2>
-        loss_train = 0.0
-        for imgs, labels in train_loader:  # <3>
-            imgs = imgs.to(device=device)
+        running_loss = 0.0
+        correct = 0.0
+        total = 0.0
+        for data, labels in train_loader:  # <3>
+            data = data.to(device=device)
             labels = labels.to(device=device).view(-1, 1).float()
 
-            outputs = model(imgs)  # <4>
+            outputs = model(data)  # <4>
 
             loss = loss_fn(outputs, labels)  # <5>
 
@@ -113,58 +157,82 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, device):
 
             optimizer.step()  # <8>
 
-            loss_train += loss.item()  # <9>
+            running_loss += loss.item()  # <9>
+            total += labels.size(0)
+            correct += outputs.eq(labels).sum().item()
+
+        train_loss = running_loss / len(train_loader)
+        accu = 100. * correct / total
+
+        train_accu.append(accu)
+        train_losses.append(train_loss)
+        test(model,valid_loader,device,loss_fn)
 
         if epoch == 1 or epoch % 10 == 0:
             print('{} Epoch {}, Training loss {} GPU usage {} '.format(
                 datetime.datetime.now(), epoch,
-                loss_train / len(train_loader),
+                train_loss,
                 torch.cuda.max_memory_allocated(device) / 1024 ** 2))  # <10>
 
 
-def validate(model, args):
+
+
+
+
+def validate(model, args, train_loader, valid_loader):
     options = read_data_cfg(args.images)
     device = (torch.device('cuda') if torch.cuda.is_available()
               else torch.device('cpu'))
     print(f"Validating on device {device}.")
-    train_path = pl.Path(options['train'])
-    train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
-    t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
-    t2 = torch.load(train_label_path, map_location=device).reshape(8862)
-    trainset = list(zip(t1, t2))
 
-    model.to(device=device)  # <2>
-
-    train_loader = D.DataLoader(trainset, batch_size=64,
-                                shuffle=False)  # <1>
-
-    valid_path = pl.Path(options['valid'])
-    valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
-
-    v1 = torch.load(valid_path, map_location=device).reshape(1366, 1792, 8, 10)
-    v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
-    valset = list(zip(v1, v2))
-    val_loader = torch.utils.data.DataLoader(valset, batch_size=64,
-                                             shuffle=False)
     model.eval()
 
-    for name, loader in [("train", train_loader), ("val", val_loader)]:
+    for name, loader in [("train", train_loader), ("val", valid_loader)]:
         mse = 0.
         total = 0.
         with torch.no_grad():
-            for imgs, labels in loader:
-                imgs = imgs.to(device=device)
+            for data, labels in loader:
+                data = data.to(device=device)
                 labels = labels.to(device=device).float()
-                outputs = model(imgs)
+                outputs = model(data).view(-1)
                 total += labels.shape[0]
                 mse += ((outputs - labels) ** 2).sum()
-        print("Accuracy {}: {:.2f}".format(name, mse / total))
+        print("MSE {}: {:.2f}".format(name, mse / total))
+
+
+def test(model,valid_loader,device,loss_fn):
+    model.eval()
+
+    running_loss = 0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for data,labels in valid_loader:
+            data = data.to(device=device)
+            labels = labels.to(device=device).view(-1, 1).float()
+            outputs = model(data)
+
+            loss = loss_fn(outputs, labels)
+            running_loss += loss.item()
+
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+
+    valid_loss = running_loss / len(valid_loader)
+    accu = 100. * correct / total
+
+    eval_losses.append(valid_loss)
+    eval_accu.append(accu)
+
+    print('Test Loss: %.3f | Accuracy: %.3f' % (valid_loss, accu))
 
 
 if __name__ == '__main__':
     args = cmdline.arg_parse()
     # 1. get tensor
-    # density(args)
+    # feature_extraction(args)
     # 2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -173,6 +241,5 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     # 3. training
-    model = DensityNet()
-    train(model,args)
-    validate(model,args)
+    density(args)
+    #validate(model,args)

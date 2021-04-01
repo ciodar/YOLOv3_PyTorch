@@ -36,4 +36,5 @@ def arg_parse():
                         default = "cuda:0", type = str)
     parser.add_argument('--epoch', '-e', type=int, default=50,help='How many epoch we train, default is 30')
     parser.add_argument('--lr', type=float, default=1e-3, help='How many epoch we train, default is 30')
+    parser.add_argument('--save','-s',type=bool, default=False, help='Enable saving of model on disk')
     return parser.parse_args()
