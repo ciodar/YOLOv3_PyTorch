@@ -100,23 +100,17 @@ def density(args):
     train(model, args,train_loader,valid_loader,device)
     #if args.save:
     #    torch.save(model.state_dict(), pl.Path.joinpath(train_path.parent, 'trained_model.pt'))
-    plt.plot(train_accu, '-o')
-    plt.plot(eval_accu, '-o')
-    plt.xlabel('epoch')
-    plt.ylabel('accuracy')
-    plt.legend(['Train', 'Valid'])
-    plt.title('Train vs Valid Accuracy')
 
-    plt.show()
-
+    fig = plt.figure()
+    plt.ylim(0,10)
     plt.plot(train_losses, '-o')
     plt.plot(eval_losses, '-o')
     plt.xlabel('epoch')
     plt.ylabel('losses')
+    plt.ylim(0, 10)
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Losses')
-
-    plt.show()
+    plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent,'train_loss.png')))
 
 def train(model,args,train_loader,valid_loader,device):
 
@@ -203,9 +197,9 @@ def validate(model, args, train_loader, valid_loader):
 def test(model,valid_loader,device,loss_fn):
     model.eval()
 
-    running_loss = 0
-    correct = 0
-    total = 0
+    running_loss = 0.
+    correct = 0.
+    total = 0.
 
     with torch.no_grad():
         for data,labels in valid_loader:
