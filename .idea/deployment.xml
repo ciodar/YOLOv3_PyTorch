@@ -2,13 +2,6 @@
 <project version="4">
   <component name="PublishConfigData" overwriteAll="false" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
-      <paths name="dcioni@150.217.35.131:22 password">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/home/dcioni/YOLOv3_PyTorch" local="$PROJECT_DIR$" />
-          </mappings>
-        </serverdata>
-      </paths>
       <paths name="micc_server">
         <serverdata>
           <mappings>

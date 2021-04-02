@@ -8,10 +8,12 @@ import tqdm
 import pathlib as pl
 from densitynet import DensityNet
 import torch.optim as optim
-import datetime
 import torch.utils.data as D
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_squared_error
 
 train_losses=[]
 train_accu=[]
@@ -100,17 +102,50 @@ def density(args):
     train(model, args,train_loader,valid_loader,device)
     #if args.save:
     #    torch.save(model.state_dict(), pl.Path.joinpath(train_path.parent, 'trained_model.pt'))
+    validate(model,args,train_loader=train_loader,valid_loader=valid_loader,device=device)
+    predictions = evaluate(model,args,train_loader,valid_loader,device)
 
-    fig = plt.figure()
-    plt.ylim(0,10)
-    plt.plot(train_losses, '-o')
-    plt.plot(eval_losses, '-o')
+    train_predict = np.array(predictions['train'])
+    train_predict = train_predict.reshape(2,train_predict.shape[1]).transpose()
+    eval_predict = np.array(predictions['val'])
+    eval_predict = eval_predict.reshape(2,eval_predict.shape[1]).transpose()
+
+    mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
+                                                ,train_predict[train_predict[:, 0] == i][:, 1]) \
+                             for i in np.unique(train_predict[:,0])]
+
+    mse_val_by_num = [mean_squared_error(eval_predict[eval_predict[:, 0] == i][:, 0] \
+                                           , eval_predict[eval_predict[:, 0] == i][:, 1]) \
+                        for i in np.unique(eval_predict[:, 0])]
+
+    plt.plot(train_accu)
+    plt.plot(eval_accu)
+    plt.xlabel('epoch')
+    plt.ylabel('accuracy')
+    plt.legend(['Train', 'Valid'])
+    plt.title('Train vs Valid Accuracy')
+    #plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent,args.det+'_train_accuracy.png')))
+    plt.show()
+
+    plt.plot(train_losses)
+    plt.plot(eval_losses)
     plt.xlabel('epoch')
     plt.ylabel('losses')
-    plt.ylim(0, 10)
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Losses')
-    plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent,'train_loss.png')))
+    #plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent,args.det+'_train_loss.png')))
+    plt.show()
+
+    plt.plot(mse_train_by_num)
+    plt.plot(mse_val_by_num)
+    plt.xlabel('person count')
+    plt.ylabel('mse')
+    plt.legend(['Train', 'Valid'])
+    plt.title('Train vs Valid MSE by number of people')
+    #plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent, args.det + '_train_mse_by_people.png')))
+    plt.show()
+
+    return model
 
 def train(model,args,train_loader,valid_loader,device):
 
@@ -129,15 +164,17 @@ def train(model,args,train_loader,valid_loader,device):
         device=device
     )
 
-    return model
-
 
 def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader, device):
-    for epoch in range(1, n_epochs + 1):  # <2>
+    pbar = tqdm.tqdm(range(1, n_epochs + 1))
+    for epoch in pbar:  # <2>
+
+        model.train()
+
         running_loss = 0.0
         correct = 0.0
         total = 0.0
-        for data, labels in train_loader:  # <3>
+        for data, labels in valid_loader:  # <3>
             data = data.to(device=device)
             labels = labels.to(device=device).view(-1, 1).float()
 
@@ -153,45 +190,63 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
 
             running_loss += loss.item()  # <9>
             total += labels.size(0)
-            correct += outputs.eq(labels).sum().item()
+            correct += torch.round(outputs).eq(labels).sum().item()
 
         train_loss = running_loss / len(train_loader)
         accu = 100. * correct / total
 
         train_accu.append(accu)
         train_losses.append(train_loss)
-        test(model,valid_loader,device,loss_fn)
+        valid_loss,valid_accu = test(model,valid_loader,device,loss_fn)
 
-        if epoch == 1 or epoch % 10 == 0:
-            print('{} Epoch {}, Training loss {} GPU usage {} '.format(
-                datetime.datetime.now(), epoch,
-                train_loss,
-                torch.cuda.max_memory_allocated(device) / 1024 ** 2))  # <10>
+        pbar.set_postfix({'Epoch': epoch,'Train loss':train_loss,'Train accuracy':accu,'Valid loss':valid_loss,'Valid accuracy':valid_accu,'Train MSE mean':np.mean(train_losses),'Valid MSE mean':np.mean(eval_losses)})
 
 
-
-
-
-
-def validate(model, args, train_loader, valid_loader):
-    options = read_data_cfg(args.images)
-    device = (torch.device('cuda') if torch.cuda.is_available()
-              else torch.device('cpu'))
+def validate(model, args, train_loader, valid_loader,device):
     print(f"Validating on device {device}.")
 
+    model.to(device=device)  # <2>
     model.eval()
+    loss_fn = nn.MSELoss()
 
     for name, loader in [("train", train_loader), ("val", valid_loader)]:
-        mse = 0.
+        running_loss = 0.
         total = 0.
         with torch.no_grad():
             for data, labels in loader:
                 data = data.to(device=device)
-                labels = labels.to(device=device).float()
-                outputs = model(data).view(-1)
-                total += labels.shape[0]
-                mse += ((outputs - labels) ** 2).sum()
-        print("MSE {}: {:.2f}".format(name, mse / total))
+                labels = labels.to(device=device).view(-1,1).float()
+                outputs = model(data)
+
+                loss = loss_fn(outputs,labels)
+                running_loss += loss.item()
+
+        mse = running_loss/len(loader)
+        print("MSE {}: {:.2f}".format(name, mse))
+
+def evaluate(model,args,train_loader,valid_loader,device):
+    print(f"Validating on device {device}.")
+
+    model.to(device=device)  # <2>
+    model.eval()
+
+
+    predictions = {}
+    for name, loader in [("train", train_loader), ("val", valid_loader)]:
+        y_true = torch.tensor([], dtype=torch.long, device=device)
+        all_outputs = torch.tensor([], device=device)
+        with torch.no_grad():
+            for data, labels in loader:
+                data = data.to(device=device)
+                labels = labels.view(-1,1).float()
+                y_true = torch.cat((y_true, labels), 0)
+                outputs = model(data)
+                all_outputs = torch.cat((all_outputs, outputs), 0)
+        y_true = y_true.cpu().numpy()
+        all_outputs = all_outputs.cpu().numpy()
+        predictions[name]=(y_true,all_outputs)
+    return predictions
+
 
 
 def test(model,valid_loader,device,loss_fn):
@@ -210,17 +265,15 @@ def test(model,valid_loader,device,loss_fn):
             loss = loss_fn(outputs, labels)
             running_loss += loss.item()
 
-            _, predicted = outputs.max(1)
             total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
+            correct += torch.round(outputs).eq(labels).sum().item()
 
     valid_loss = running_loss / len(valid_loader)
     accu = 100. * correct / total
 
     eval_losses.append(valid_loss)
     eval_accu.append(accu)
-
-    print('Test Loss: %.3f | Accuracy: %.3f' % (valid_loss, accu))
+    return valid_loss,accu
 
 
 if __name__ == '__main__':
@@ -235,5 +288,4 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     # 3. training
-    density(args)
-    #validate(model,args)
+    model = density(args)
