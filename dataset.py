@@ -120,7 +120,7 @@ class listDataset(Dataset):
             img, label = load_data_detection(imgpath, self.shape, self.crop, self.jitter, self.hue, self.saturation, self.exposure)
             label = torch.from_numpy(label)
         else:
-            img = Image.open(imgpath).convert('RGB')
+            img = Image.open(imgpath.rstrip()).convert('RGB')
             if self.shape:
                 img, org_w, org_h = letterbox_image(img, self.shape[0], self.shape[1]), img.width, img.height
     
