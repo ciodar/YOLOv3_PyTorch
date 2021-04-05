@@ -41,7 +41,7 @@ def feature_extraction(args):
         m.load_weights(args.weightsfile)
     use_cuda = torch.cuda.is_available() and (True if args.cuda is None else args.cuda)
     cuda_device = torch.device(args.device if use_cuda else "cpu")
-    fm = torch.empty(2, 1792, 16, 20).to(cuda_device)
+    fm = torch.empty(2, 1792,8,10).to(cuda_device)
     gt = torch.empty(2).to(cuda_device)
     if use_cuda:
         m.to(cuda_device)
@@ -279,7 +279,7 @@ def test(model,valid_loader,device,loss_fn):
 if __name__ == '__main__':
     args = cmdline.arg_parse()
     # 1. get tensor
-    # feature_extraction(args)
+    feature_extraction(args)
     # 2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -288,4 +288,4 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     # 3. training
-    model = density(args)
+    # model = density(args)

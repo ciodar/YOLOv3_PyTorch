@@ -16,6 +16,14 @@ class MaxPoolStride1(nn.Module):
         x = F.max_pool2d(F.pad(x, (0,1,0,1), mode='replicate'), 2, stride=1)
         return x
 
+class AvgPoolStride1(nn.Module):
+    def __init__(self):
+        super(AvgPoolStride1, self).__init__()
+
+    def forward(self, x):
+        x = F.avg_pool2d(F.pad(x, (0,1,0,1), mode='replicate'), 2, stride=1)
+        return x
+
 class Upsample(nn.Module):
     def __init__(self, stride=2):
         super(Upsample, self).__init__()
@@ -126,7 +134,7 @@ class Darknet(nn.Module):
             ind = ind + 1
             if block['type'] == 'net':
                 continue
-            elif block['type'] in ['convolutional', 'maxpool', 'reorg', 'upsample', 'avgpool', 'softmax', 'connected']:
+            elif block['type'] in ['convolutional', 'maxpool', 'reorg', 'upsample','gavgpool', 'avgpool', 'softmax', 'connected']:
                 x = self.models[ind](x)
                 outputs[ind] = x
             elif block['type'] == 'route':
@@ -249,9 +257,20 @@ class Darknet(nn.Module):
                 prev_stride = stride * prev_stride
                 out_strides.append(prev_stride)                
                 models.append(model)
-            elif block['type'] == 'avgpool':
+            elif block['type'] == 'gavgpool':
                 model = GlobalAvgPool2d()
                 out_filters.append(prev_filters)
+                out_strides.append(prev_stride)
+                models.append(model)
+            elif block['type'] == 'avgpool':
+                pool_size = int(block['size'])
+                stride = int(block['stride'])
+                if stride > 1:
+                    model = nn.AvgPool2d(pool_size, stride)
+                else:
+                    model = MaxPoolStride1()
+                out_filters.append(prev_filters)
+                prev_stride = stride * prev_stride
                 out_strides.append(prev_stride)
                 models.append(model)
             elif block['type'] == 'softmax':
@@ -467,7 +486,9 @@ class Darknet(nn.Module):
             elif block['type'] == 'region':
                 pass
             elif block['type'] == 'yolo':
-                pass                
+                pass
+            elif block['type'] == 'gavgpool':
+                pass
             elif block['type'] == 'avgpool':
                 pass
             elif block['type'] == 'softmax':
@@ -535,6 +556,8 @@ class Darknet(nn.Module):
             elif block['type'] == 'region':
                 pass
             elif block['type'] == 'yolo':
+                pass
+            elif block['type'] == 'gavgpool':
                 pass
             elif block['type'] == 'avgpool':
                 pass
@@ -611,6 +634,8 @@ class Darknet(nn.Module):
             elif block['type'] == 'region':
                 pass
             elif block['type'] == 'yolo':
+                pass
+            elif block['type'] == 'gavgpool':
                 pass
             elif block['type'] == 'avgpool':
                 pass
