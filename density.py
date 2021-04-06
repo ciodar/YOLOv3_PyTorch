@@ -29,7 +29,7 @@ def feature_extraction(args):
     gt_file = (pl.Path.joinpath(out_path.parent, fm_file.stem + '_' + args.set + '_labels' + fm_file.suffix))
     if not fm_file.parent.exists() or not gt_file.parent.exists():
         raise Exception("Selected output path does not exist")
-
+    print("Saving features into %s,labels into %s"%(str(fm_file),str(gt_file)))
     m = Darknet(args.cfgfile)
     # m.print_network()
     check_model = args.cfgfile.split('.')[-1]
@@ -41,8 +41,8 @@ def feature_extraction(args):
         m.load_weights(args.weightsfile)
     use_cuda = torch.cuda.is_available() and (True if args.cuda is None else args.cuda)
     cuda_device = torch.device(args.device if use_cuda else "cpu")
-    fm = torch.empty(2, 1792,8,10).to(cuda_device)
-    gt = torch.empty(2).to(cuda_device)
+    fm = None
+    gt = None
     if use_cuda:
         m.to(cuda_device)
         # print("Using device #", cuda_device, " (", get_device_name(cuda_device), ")")
@@ -65,10 +65,17 @@ def feature_extraction(args):
                 pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
                 # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
                 data = data.cuda(cuda_device)
-            fm = torch.cat((fm, m(data).clone().detach().to(cuda_device)))
-            gt = torch.cat((gt, target.clone().detach().to(cuda_device)))
+            if fm is None:
+              fm = m(data).clone().detach().to(cuda_device)
+            else:
+              fm = torch.cat((fm, m(data).clone().detach().to(cuda_device)))
+            if gt is None:
+              gt = target.clone().detach().to(cuda_device)
+            else:
+              gt = torch.cat((gt, target.clone().detach().to(cuda_device)))
             del data, target
     # n_batches,batch,depth,height,width
+
     torch.save(fm, str(fm_file))
     torch.save(gt, str(gt_file))
 
@@ -83,16 +90,21 @@ def density(args):
 
     # train loader
     train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
-    t1 = torch.load(train_path, map_location=device).reshape(8862, 1792, 8, 10)
+    t1 = torch.load(train_path, map_location=device)
+    t1 = t1.reshape(8862, 1792, 8, 10)
     t2 = torch.load(train_label_path, map_location=device).reshape(8862)
+    print("Loaded train features from {},labels from {}".format(str(train_path),str(train_label_path)))
     trainset = list(zip(t1, t2))
     train_loader = D.DataLoader(trainset, batch_size=64,
                                 shuffle=True)
 
     # test loader
     valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
-    v1 = torch.load(valid_path, map_location=device).reshape(1366, 1792, 8, 10)
+    v1 = torch.load(valid_path, map_location=device)
+    print(v1.shape)
+    v1 = v1.reshape(1366, 1792, 8, 10)
     v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
+    print("Loaded lid features from {},labels from {}".format(str(valid_path),str(valid_label_path)))
     valset = list(zip(v1, v2))
     valid_loader = torch.utils.data.DataLoader(valset, batch_size=64,
                                              shuffle=False)
@@ -101,7 +113,7 @@ def density(args):
     # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
     train(model, args,train_loader,valid_loader,device)
     #if args.save:
-    #    torch.save(model.state_dict(), pl.Path.joinpath(train_path.parent, 'trained_model.pt'))
+    torch.save(model.state_dict(), pl.Path.joinpath(train_path.parent, 'trained_model.pt'))
     validate(model,args,train_loader=train_loader,valid_loader=valid_loader,device=device)
     predictions = evaluate(model,args,train_loader,valid_loader,device)
 
@@ -109,6 +121,9 @@ def density(args):
     train_predict = train_predict.reshape(2,train_predict.shape[1]).transpose()
     eval_predict = np.array(predictions['val'])
     eval_predict = eval_predict.reshape(2,eval_predict.shape[1]).transpose()
+
+    np.save(pl.Path.joinpath(train_path.parent,'mse_train_arr'),train_predict)
+    np.save(pl.Path.joinpath(train_path.parent,'mse_valid_arr'),eval_predict)
 
     mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
                                                 ,train_predict[train_predict[:, 0] == i][:, 1]) \
@@ -124,8 +139,8 @@ def density(args):
     plt.ylabel('accuracy')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Accuracy')
-    #plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent,args.det+'_train_accuracy.png')))
-    plt.show()
+    plt.savefig(pl.Path.joinpath(train_path.parent,args.det+'_train_accuracy.png'))
+    # plt.show()
 
     plt.plot(train_losses)
     plt.plot(eval_losses)
@@ -133,8 +148,8 @@ def density(args):
     plt.ylabel('losses')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Losses')
-    #plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent,args.det+'_train_loss.png')))
-    plt.show()
+    plt.savefig(pl.Path.joinpath(train_path.parent,args.det+'_train_loss.png'))
+    # plt.show()
 
     plt.plot(mse_train_by_num)
     plt.plot(mse_val_by_num)
@@ -142,8 +157,8 @@ def density(args):
     plt.ylabel('mse')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid MSE by number of people')
-    #plt.savefig(pl.Path.joinpath(pl.Path.joinpath(train_path.parent, args.det + '_train_mse_by_people.png')))
-    plt.show()
+    plt.savefig(pl.Path.joinpath(train_path.parent, args.det + '_train_mse_by_people.png'))
+    # plt.show()
 
     return model
 
@@ -174,7 +189,7 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
         running_loss = 0.0
         correct = 0.0
         total = 0.0
-        for data, labels in valid_loader:  # <3>
+        for data, labels in train_loader:  # <3>
             data = data.to(device=device)
             labels = labels.to(device=device).view(-1, 1).float()
 
@@ -279,7 +294,7 @@ def test(model,valid_loader,device,loss_fn):
 if __name__ == '__main__':
     args = cmdline.arg_parse()
     # 1. get tensor
-    feature_extraction(args)
+    # feature_extraction(args)
     # 2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -288,4 +303,4 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     # 3. training
-    # model = density(args)
+    model = density(args)
