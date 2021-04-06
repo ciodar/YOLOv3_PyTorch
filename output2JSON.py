@@ -3,7 +3,7 @@ import pathlib as pl
 import json
 def convert_predict_to_JSON():
     # path_source = os.getcwd()
-    path_source = pl.Path('K:/results/test_flir_evaluation_0005')
+    path_source = pl.Path('D:/results/evaluation/flir/valid')
 
     #filename = 'det_test_person.txt'
     #TODO link with actual dataset category dictionary
@@ -21,11 +21,11 @@ def convert_predict_to_JSON():
     # os.chdir(path_source)
     allscore = []
     alldata = []
-    for filename in path_source.rglob('det_test*.txt'):
+    for filename in path_source.rglob('valid_evaluation*.txt'):
         f = filename.open('r')
         lines = f.readlines()
         f.close()
-        category = filename.stem.split('det_test_')[1]
+        category = filename.stem.split('valid_evaluation_')[1]
 
         for line in lines:
             if len(line) > 1 or line != '\n':
@@ -63,9 +63,4 @@ def convert_predict_to_JSON():
 
 
 if __name__ == '__main__':
-    import sys
-    if len(sys.argv) >=1:
-        convert_predict_to_JSON()
-    else:
-        print('Usage:')
-        print(' python convert_predict_YOLO_JSON.py')
+    convert_predict_to_JSON()
