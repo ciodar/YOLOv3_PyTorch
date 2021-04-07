@@ -133,6 +133,7 @@ def density(args):
                                            , eval_predict[eval_predict[:, 0] == i][:, 1]) \
                         for i in np.unique(eval_predict[:, 0])]
 
+    fig = plt.figure()
     plt.plot(train_accu)
     plt.plot(eval_accu)
     plt.xlabel('epoch')
@@ -142,6 +143,7 @@ def density(args):
     plt.savefig(pl.Path.joinpath(train_path.parent,args.det+'_train_accuracy.png'))
     # plt.show()
 
+    fig = plt.figure()
     plt.plot(train_losses)
     plt.plot(eval_losses)
     plt.xlabel('epoch')
@@ -151,6 +153,7 @@ def density(args):
     plt.savefig(pl.Path.joinpath(train_path.parent,args.det+'_train_loss.png'))
     # plt.show()
 
+    fig = plt.figure()
     plt.plot(mse_train_by_num)
     plt.plot(mse_val_by_num)
     plt.xlabel('person count')
@@ -215,7 +218,8 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
         valid_loss,valid_accu = test(model,valid_loader,device,loss_fn)
 
         pbar.set_postfix({'Epoch': epoch,'Train loss':train_loss,'Train accuracy':accu,'Valid loss':valid_loss,'Valid accuracy':valid_accu,'Train MSE mean':np.mean(train_losses),'Valid MSE mean':np.mean(eval_losses)})
-
+        if device.type != "cpu":
+            pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
 
 def validate(model, args, train_loader, valid_loader,device):
     print(f"Validating on device {device}.")
