@@ -9,7 +9,7 @@ import json
 import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
-from utils import read_truths_args, read_truths,read_json_truths_args,read_json_truths_count,read_truths_count
+from utils import read_truths_args, read_truths,read_truths_count
 from image import *
 import pathlib as pl
 

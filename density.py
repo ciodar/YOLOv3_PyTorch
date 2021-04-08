@@ -41,8 +41,7 @@ def feature_extraction(args):
         m.load_weights(args.weightsfile)
     use_cuda = torch.cuda.is_available() and (True if args.cuda is None else args.cuda)
     cuda_device = torch.device(args.device if use_cuda else "cpu")
-    fm = None
-    gt = None
+
     if use_cuda:
         m.to(cuda_device)
         # print("Using device #", cuda_device, " (", get_device_name(cuda_device), ")")
@@ -53,6 +52,9 @@ def feature_extraction(args):
                                            transform=transforms.Compose([
                                                transforms.ToTensor(),
                                            ]))
+
+    fm = []
+    gt = []
     kwargs = {'num_workers': 2, 'pin_memory': True}
     assert args.bs > 0
     valid_loader = torch.utils.data.DataLoader(
@@ -65,16 +67,13 @@ def feature_extraction(args):
                 pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
                 # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
                 data = data.cuda(cuda_device)
-            if fm is None:
-              fm = m(data).clone().detach().to(cuda_device)
-            else:
-              fm = torch.cat((fm, m(data).clone().detach().to(cuda_device)))
-            if gt is None:
-              gt = target.clone().detach().to(cuda_device)
-            else:
-              gt = torch.cat((gt, target.clone().detach().to(cuda_device)))
-            del data, target
+            output = m(data).clone().detach()
+            fm.append(output)
+            gt.append(target.clone().detach())
+            del data, target,output
     # n_batches,batch,depth,height,width
+    fm = torch.stack(fm).reshape(len(valid_dataset),1792,8,10)
+    gt = gt.stack(gt).reshape(len(valid_dataset))
 
     torch.save(fm, str(fm_file))
     torch.save(gt, str(gt_file))
@@ -219,7 +218,7 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
 
         pbar.set_postfix({'Epoch': epoch,'Train loss':train_loss,'Train accuracy':accu,'Valid loss':valid_loss,'Valid accuracy':valid_accu,'Train MSE mean':np.mean(train_losses),'Valid MSE mean':np.mean(eval_losses)})
         if device.type != "cpu":
-            pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
+            pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(device) / (1024 * 1024)})
 
 def validate(model, args, train_loader, valid_loader,device):
     print(f"Validating on device {device}.")
@@ -298,7 +297,7 @@ def test(model,valid_loader,device,loss_fn):
 if __name__ == '__main__':
     args = cmdline.arg_parse()
     # 1. get tensor
-    # feature_extraction(args)
+    feature_extraction(args)
     # 2. evaluation
     # tensor = torch.load(tensorpath,map_location=torch.device("cpu")).reshape(8862,1792,8,10)
     # print(tensor)
@@ -307,4 +306,39 @@ if __name__ == '__main__':
     # output = m(tensor[0].unsqueeze(0))
     # print(output)
     # 3. training
-    model = density(args)
+    # model = density(args)
+    # model = DensityNet()
+    # model.load_state_dict(torch.load('D:/weights/10_8_avg_simple_model.pt', map_location="cpu"),strict=False)
+    # options = read_data_cfg('data/kaist_density.data')
+    # train_path = pl.Path(options['train'])
+    # valid_path = pl.Path(options['valid'])
+    #
+    # device = (torch.device('cuda') if torch.cuda.is_available()
+    #           else torch.device('cpu'))
+    # # train loader
+    # train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
+    # t1 = torch.load(train_path, map_location=device)
+    # t1 = t1.reshape(8862, 1792, 8, 10)
+    # t2 = torch.load(train_label_path, map_location=device).reshape(8862)
+    # print("Loaded train features from {},labels from {}".format(str(train_path), str(train_label_path)))
+    # trainset = list(zip(t1, t2))
+    # train_loader = D.DataLoader(trainset, batch_size=64,
+    #                             shuffle=True)
+    # valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
+    # v1 = torch.load(valid_path, map_location=device)
+    # print(v1.shape)
+    # v1 = v1.reshape(1366, 1792, 8, 10)
+    # v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
+    # print("Loaded lid features from {},labels from {}".format(str(valid_path), str(valid_label_path)))
+    # valset = list(zip(v1, v2))
+    # valid_loader = torch.utils.data.DataLoader(valset, batch_size=64,
+    #                                            shuffle=False)
+    # predictions = evaluate(model, None, train_loader, valid_loader, device)
+    #
+    # train_predict = np.array(predictions['train'])
+    # train_predict = train_predict.reshape(2, train_predict.shape[1]).transpose()
+    # eval_predict = np.array(predictions['val'])
+    # eval_predict = eval_predict.reshape(2, eval_predict.shape[1]).transpose()
+    #
+    # np.save(pl.Path.joinpath(train_path.parent, 'mse_train_arr'), train_predict)
+    # np.save(pl.Path.joinpath(train_path.parent, 'mse_valid_arr'), eval_predict)
