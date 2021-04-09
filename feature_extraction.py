@@ -60,10 +60,12 @@ def feature_extraction(args):
             del data, target, output
     # n_batches,batch,depth,height,width
     fm = torch.stack(fm).reshape(len(valid_dataset), 1792, 8, 10)
-    gt = gt.stack(gt).reshape(len(valid_dataset))
+    gt = torch.stack(gt).reshape(len(valid_dataset))
 
     torch.save(fm, str(fm_file))
+    print(f"Saved feature maps into {str(fm_file)},shape:{fm.shape}")
     torch.save(gt, str(gt_file))
+    print(f"Saved feature maps into {str(gt_file)},shape:{gt.shape}")
 
 
 if __name__ == '__main__':
