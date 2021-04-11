@@ -56,7 +56,7 @@ def feature_extraction(args):
                     # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
                     data = data.to(cuda_device)
 
-                output = m(data).numpy()
+                output = m(data).cpu().numpy()
                 np.save(str(pl.Path.joinpath(fm_dir,pl.Path(valid_dataset.get_image(count_loop)).stem)),output)
                 with open(pl.Path.joinpath(fm_dir,pl.Path(valid_dataset.get_image(count_loop)).stem+'.txt'),'w') as f:
                     f.write(str(target.item()))

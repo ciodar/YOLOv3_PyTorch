@@ -30,31 +30,38 @@ def density(args):
         reserved = torch.cuda.memory_reserved(device)
         allocated = torch.cuda.memory_allocated(device)
         free = reserved - allocated  # free inside reserved
-    print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
+        print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
 
     options = read_data_cfg(args.images)
     train_path = pl.Path(options['train'])
     valid_path = pl.Path(options['valid'])
 
     # train loader
-    train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
-    t1 = torch.load(train_path, map_location=device)
-    t1 = t1.reshape(8862, 1792, 8, 10)
-    t2 = torch.load(train_label_path, map_location=device).reshape(8862)
-    print("Loaded train features from {},labels from {}".format(str(train_path),str(train_label_path)))
-    trainset = list(zip(t1, t2))
+    # train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
+    # t1 = torch.load(train_path, map_location=device)
+    # t1 = t1.reshape(8862, 1792, 8, 10)
+    # t2 = torch.load(train_label_path, map_location=device).reshape(8862)
+    # print("Loaded train features from {},labels from {}".format(str(train_path),str(train_label_path)))
+    # trainset = list(zip(t1, t2))
+
+    trainset = dataset.featureDataset(train_path, shape=(10, 8),
+                                           shuffle=False,
+                                           )
+
     train_loader = D.DataLoader(trainset, batch_size=args.bs,
                                 shuffle=True)
-
     # test loader
-    valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
-    v1 = torch.load(valid_path, map_location=device)
-    print(v1.shape)
-    v1 = v1.reshape(1366, 1792, 8, 10)
-    v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
-    print(f"Loaded valid features from {str(valid_path)},labels from {str(valid_label_path)}")
-    valset = list(zip(v1, v2))
-    valid_loader = torch.utils.data.DataLoader(valset, batch_size=args.bs,
+    # valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
+    # v1 = torch.load(valid_path, map_location=device)
+    # v1 = v1.reshape(1366, 1792, 8, 10)
+    # v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
+    # print(f"Loaded valid features from {str(valid_path)},labels from {str(valid_label_path)}")
+    # valset = list(zip(v1, v2))
+
+    valset = dataset.featureDataset(valid_path, shape=(10, 8),
+                                      shuffle=False,
+                                      )
+    valid_loader = D.DataLoader(valset, batch_size=args.bs,
                                              shuffle=False)
 
     # retrieve weights
@@ -73,8 +80,10 @@ def density(args):
     eval_predict = np.array(predictions['val'])
     eval_predict = eval_predict.reshape(2,eval_predict.shape[1]).transpose()
 
-    np.save(pl.Path.joinpath(outdir,'mse_train_arr'),train_predict)
-    np.save(pl.Path.joinpath(outdir,'mse_valid_arr'),eval_predict)
+    np.save(pl.Path.joinpath(outdir, 'mse_train_arr'), train_predict)
+    np.save(pl.Path.joinpath(outdir, 'mse_valid_arr'), eval_predict)
+    np.save(pl.Path.joinpath(outdir, 'train_eval'), np.array(train_losses))
+    np.save(pl.Path.joinpath(outdir, 'valid_eval'), np.array(eval_losses))
 
     mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
                                                 ,train_predict[train_predict[:, 0] == i][:, 1]) \
@@ -120,7 +129,7 @@ def train(model,args,train_loader,valid_loader,device):
 
     model.to(device=device)  # <2>
     model.train()
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)  # <3>
+    optimizer = optim.SGD(model.parameters(), lr=args.lr)  # <3>
     loss_fn = nn.MSELoss()  # <4>
 
     training_loop(  # <5>
@@ -145,16 +154,14 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
         total = 0.0
         for data, labels in train_loader:  # <3>
             data = data.to(device=device)
-            labels = labels.to(device=device).unsqueeze(1).float()
+            labels = labels.float().to(device=device).unsqueeze(1)
 
             outputs = model(data)  # <4>
 
             loss = loss_fn(outputs, labels)  # <5>
 
             optimizer.zero_grad()  # <6>
-
             loss.backward()  # <7>
-
             optimizer.step()  # <8>
 
             running_loss += loss.item()  # <9>
@@ -219,12 +226,14 @@ def evaluate(model,args,train_loader,valid_loader,device):
 
 
 
-def test(model,valid_loader,device,loss_fn):
+def test(model,valid_loader,device):
     model.eval()
 
     running_loss = 0.
     correct = 0.
     total = 0.
+
+    loss_fn = nn.MSELoss()
 
     with torch.no_grad():
         for data,labels in valid_loader:
