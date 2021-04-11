@@ -27,7 +27,7 @@ def density(args):
               else torch.device('cpu'))
     if device.type=='cuda':
         mem = torch.cuda.get_device_properties(device).total_memory
-        reserved = torch.cuda.memory_cached(device)
+        reserved = torch.cuda.memory_reserved(device)
         allocated = torch.cuda.memory_allocated(device)
         free = reserved - allocated  # free inside reserved
     print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
@@ -61,7 +61,10 @@ def density(args):
     # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
     train(model, args,train_loader,valid_loader,device)
     #if args.save:
-    torch.save(model.state_dict(), pl.Path.joinpath(train_path.parent,args.det, 'trained_model.pt'))
+    outdir = pl.Path.joinpath(train_path.parent,args.det)
+    if not outdir.exists():
+        outdir.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), pl.Path.joinpath(outdir, 'trained_model.pt'))
     validate(model,args,train_loader=train_loader,valid_loader=valid_loader,device=device)
     predictions = evaluate(model,args,train_loader,valid_loader,device)
 
@@ -70,8 +73,8 @@ def density(args):
     eval_predict = np.array(predictions['val'])
     eval_predict = eval_predict.reshape(2,eval_predict.shape[1]).transpose()
 
-    np.save(pl.Path.joinpath(train_path.parent,args.det,'mse_train_arr'),train_predict)
-    np.save(pl.Path.joinpath(train_path.parent,args.det,'mse_valid_arr'),eval_predict)
+    np.save(pl.Path.joinpath(outdir,'mse_train_arr'),train_predict)
+    np.save(pl.Path.joinpath(outdir,'mse_valid_arr'),eval_predict)
 
     mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
                                                 ,train_predict[train_predict[:, 0] == i][:, 1]) \
@@ -88,7 +91,7 @@ def density(args):
     plt.ylabel('accuracy')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Accuracy')
-    plt.savefig(pl.Path.joinpath(train_path.parent,args.det,'_train_accuracy.png'))
+    plt.savefig(pl.Path.joinpath(outdir,'train_accuracy.png'))
     # plt.show()
 
     fig = plt.figure()
@@ -98,7 +101,7 @@ def density(args):
     plt.ylabel('losses')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Losses')
-    plt.savefig(pl.Path.joinpath(train_path.parent,args.det,'_train_loss.png'))
+    plt.savefig(pl.Path.joinpath(outdir,'train_loss.png'))
     # plt.show()
 
     fig = plt.figure()
@@ -108,7 +111,7 @@ def density(args):
     plt.ylabel('mse')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid MSE by number of people')
-    plt.savefig(pl.Path.joinpath(train_path.parent, args.det,'_train_mse_by_people.png'))
+    plt.savefig(pl.Path.joinpath(outdir,'train_mse_by_people.png'))
     # plt.show()
 
     return model
@@ -205,7 +208,7 @@ def evaluate(model,args,train_loader,valid_loader,device):
         with torch.no_grad():
             for data, labels in loader:
                 data = data.to(device=device)
-                labels = labels.view(-1,1).float()
+                labels = labels.unsqueeze(1).float()
                 y_true = torch.cat((y_true, labels), 0)
                 outputs = model(data)
                 all_outputs = torch.cat((all_outputs, outputs), 0)
@@ -217,7 +220,7 @@ def evaluate(model,args,train_loader,valid_loader,device):
 
 
 def test(model,valid_loader,device,loss_fn):
-    # model.eval()
+    model.eval()
 
     running_loss = 0.
     correct = 0.
