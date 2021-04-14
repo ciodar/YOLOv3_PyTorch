@@ -156,16 +156,25 @@ if __name__ == '__main__':
     # plt.show()
     # square_mean_loss('D:/dataset/flir_dataset/val/thermal_annotations.json','D:/results/evaluation/kaist/valid/detection_results.json')
 
-    kaist_mse = np.load('D:/results/evaluation/kaist/train/mse_by_num_person.npy')
-    flir_mse = np.load('D:/results/evaluation/kaist/valid/mse_by_num_person.npy')
-    plt.plot(kaist_mse[:,0],kaist_mse[:,1], label='train')
-    plt.plot(flir_mse[:,0],flir_mse[:,1], label='test')
-    # plt.xlim(0.005, 1)
+    kaist_path = pl.Path('D:/results/evaluation/kaist/valid/mse_by_num_person.npy')
+    flir_path = pl.Path('D:/results/evaluation/flir/valid/mse_by_num_person.npy')
+    regression_path = pl.Path('D:/results/Feature extraction/flir dataset/fm_kaist_density_10_8/2021_4_10_20_58_10/mse_valid_arr.npy')
+
+    arr_kaist = np.load(kaist_path)
+    arr_flir = np.load(flir_path)
+    arr_reg = np.load(regression_path)
+
+    mse_val_by_num = [mean_squared_error(arr_reg[arr_reg[:, 0] == i][:, 0] \
+                                         , arr_reg[arr_reg[:, 0] == i][:, 1]) \
+                      for i in np.unique(arr_reg[:, 0])]
+    plt.plot(arr_kaist[:, 1])
+    plt.plot(arr_flir[:, 1])
+    plt.plot(mse_val_by_num)
     plt.grid()
-    plt.xlabel('number of objects/image')
+    plt.xlabel('person count')
     plt.ylabel('mse')
-    plt.legend()
-    # plt.show()
-    plt.savefig('D:/results/evaluation/mse_by_num_kaist_performance.png')
+    plt.legend(['KAIST', 'FLIR', 'Regression - 10x8 features'])
+    plt.title('MSE by number of people comparison - Test')
+    plt.show()
 
     #mse_by_det_num('K:/dataset/flir_dataset/val/thermal_annotations.json','K:/results/test_kaist_evaluation_0005/detection_results.json',0.3590)

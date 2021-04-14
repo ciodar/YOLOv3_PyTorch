@@ -173,7 +173,7 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
 
         train_accu.append(accu)
         train_losses.append(train_loss)
-        valid_loss,valid_accu = test(model,valid_loader,device,loss_fn)
+        valid_loss,valid_accu = test(model,valid_loader,device)
         print(f"Epoch': {epoch},Train loss: {train_loss},Train accuracy:{accu},Valid loss: {valid_loss},Valid accuracy: {valid_accu},Train MSE mean: {np.mean(train_losses)},Valid MSE mean: {np.mean(eval_losses)}")
         pbar.set_postfix({'Epoch': epoch,'Train loss':train_loss,'Train accuracy':accu,'Valid loss':valid_loss,'Valid accuracy':valid_accu,'Train MSE mean':np.mean(train_losses),'Valid MSE mean':np.mean(eval_losses)})
         if device.type != "cpu":
