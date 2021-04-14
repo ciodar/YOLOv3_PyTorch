@@ -353,7 +353,7 @@ def read_truths_count(lab_path, min_box_scale):
     truths = read_truths(lab_path)
     count = 0
     for i in range(truths.shape[0]):
-        if truths[i][3] < min_box_scale or truths[i][0] !=1 :
+        if truths[i][3] < min_box_scale:
             continue
         count +=1
     return count

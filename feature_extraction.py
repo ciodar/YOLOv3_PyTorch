@@ -7,16 +7,12 @@ import tqdm
 import cmdline
 from torchvision import transforms
 
+sets = ['train','valid']
+
 def feature_extraction(args):
     options = read_data_cfg(args.images)
-    assert args.set in ['train', 'valid', 'test']
-    eval_file = options[args.set]
     out_path = pl.Path(args.det)
-    fm_file = (pl.Path.joinpath(out_path.parent, out_path.name))
-    gt_file = (pl.Path.joinpath(out_path.parent, fm_file.stem + '_' + args.set + '_labels' + fm_file.suffix))
-    if not fm_file.parent.exists() or not gt_file.parent.exists():
-        raise Exception("Selected output path does not exist")
-    print("Saving features into %s,labels into %s" % (str(fm_file), str(gt_file)))
+
     m = Darknet(args.cfgfile)
     # m.print_network()
     check_model = args.cfgfile.split('.')[-1]
@@ -33,37 +29,47 @@ def feature_extraction(args):
         m.to(cuda_device)
         # print("Using device #", cuda_device, " (", get_device_name(cuda_device), ")")
     m.eval()
+    for set in sets:
+        fm_file = (pl.Path.joinpath(out_path,set+'_features.pt'))
+        gt_file = (pl.Path.joinpath(out_path.parent, fm_file.stem + '_' + '_labels' + fm_file.suffix))
+        if not fm_file.parent.exists():
+            fm_file.mkdir(parents=True, exist_ok=True)
+        print(f"Saving features into {str(fm_file)}")
+        eval_file = options[set]
+        valid_dataset = dataset.densityDataset(eval_file, shape=(m.width, m.height),
+                                               shuffle=False,
+                                               transform=transforms.Compose([
+                                                   transforms.ToTensor(),
+                                               ]))
 
-    valid_dataset = dataset.densityDataset(eval_file, shape=(m.width, m.height),
-                                           shuffle=False,
-                                           transform=transforms.Compose([
-                                               transforms.ToTensor(),
-                                           ]))
+        fm = []
+        gt = []
+        kwargs = {'num_workers': 2, 'pin_memory': True}
+        assert args.bs > 0
+        valid_loader = torch.utils.data.DataLoader(
+            valid_dataset, batch_size=args.bs, shuffle=False, **kwargs)
 
-    fm = []
-    gt = []
-    kwargs = {'num_workers': 2, 'pin_memory': True}
-    assert args.bs > 0
-    valid_loader = torch.utils.data.DataLoader(
-        valid_dataset, batch_size=args.bs, shuffle=False, **kwargs)
+        pbar = tqdm.tqdm(valid_loader)
+        with torch.no_grad():
+            for count_loop, (data, target, org_w, org_h) in enumerate(pbar):
+                if use_cuda:
+                    pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
+                    # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
+                    data = data.to(cuda_device)
+                output = m(data).clone().detach()
+                fm.append(output)
+                gt.append(target.clone().detach())
+                del data, target, output
+        # n_batches,batch,depth,height,width
+        fm = torch.stack(fm).reshape(len(valid_dataset), 1792, 8, 10)
+        gt = torch.stack(gt).reshape(len(valid_dataset))
 
-    pbar = tqdm.tqdm(valid_loader)
-    with torch.no_grad():
-        for count_loop, (data, target, org_w, org_h) in enumerate(pbar):
-            if use_cuda:
-                pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(cuda_device) / (1024 * 1024)})
-                # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
-                data = data.cuda(cuda_device)
-            output = m(data).clone().detach()
-            fm.append(output)
-            gt.append(target.clone().detach())
-            del data, target, output
-    # n_batches,batch,depth,height,width
-    fm = torch.stack(fm).reshape(len(valid_dataset), 1792, 8, 10)
-    gt = gt.stack(gt).reshape(len(valid_dataset))
+        torch.save(fm, str(fm_file))
+        print(f"Saved feature maps into {str(fm_file)},shape:{fm.shape}")
+        torch.save(gt, str(gt_file))
+        print(f"Saved feature maps into {str(gt_file)},shape:{gt.shape}")
+        del gt,fm
 
-    torch.save(fm, str(fm_file))
-    torch.save(gt, str(gt_file))
 
 
 if __name__ == '__main__':
