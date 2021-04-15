@@ -355,8 +355,15 @@ def read_truths_count(lab_path, min_box_scale):
     for i in range(truths.shape[0]):
         if truths[i][3] < min_box_scale:
             continue
-        count +=1
+        count += 1
     return count
+
+def read_truths_count_flir(lab_path, min_box_scale):
+    truths = read_truths(lab_path)
+    truths = truths[truths[:, 3] >= min_box_scale]
+    new_truths = [truths[truths[:, 0] == 1].shape[0], truths[truths[:, 0] == 2].shape[0],
+                  truths[truths[:, 0] == 3].shape[0]]
+    return np.array(new_truths)
 
 # def read_json_truths_count(annotations_df, min_box_scale):
 #     count = 0

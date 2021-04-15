@@ -31,7 +31,7 @@ def feature_extraction(args):
     m.eval()
     for set in sets:
         fm_file = (pl.Path.joinpath(out_path,set+'_features.pt'))
-        gt_file = (pl.Path.joinpath(out_path.parent, fm_file.stem + '_' + '_labels' + fm_file.suffix))
+        gt_file = (pl.Path.joinpath(out_path if out_path.is_dir() else out_path.parent, fm_file.stem + '_' + '_labels' + fm_file.suffix))
         if not fm_file.parent.exists():
             fm_file.mkdir(parents=True, exist_ok=True)
         print(f"Saving features into {str(fm_file)}")
@@ -64,9 +64,9 @@ def feature_extraction(args):
         fm = torch.stack(fm).reshape(len(valid_dataset), 1792, 8, 10)
         gt = torch.stack(gt).reshape(len(valid_dataset))
 
-        torch.save(fm, str(fm_file))
+        torch.save(fm, fm_file)
         print(f"Saved feature maps into {str(fm_file)},shape:{fm.shape}")
-        torch.save(gt, str(gt_file))
+        torch.save(gt, gt_file)
         print(f"Saved feature maps into {str(gt_file)},shape:{gt.shape}")
         del gt,fm
 

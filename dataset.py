@@ -9,7 +9,7 @@ import json
 import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
-from utils import read_truths_args, read_truths,read_truths_count
+from utils import read_truths_args, read_truths,read_truths_count,read_truths_count_flir
 from image import *
 import pathlib as pl
 
@@ -237,9 +237,9 @@ class densityDataset(Dataset):
             labpath = imgpath.replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace(
                 '.png', '.txt').replace('.tif', '.txt')
             try:
-                tmp = read_truths_count(labpath, 8.0 / img.width)
-            except Exception:
-                tmp = 0
+                tmp = read_truths_count_flir(labpath, 8.0 / img.width)
+            except Exception as e:
+                tmp = np.array([0,0,0])
                 # tmp = torch.from_numpy(read_truths(labpath))
             label = tmp
 
@@ -346,9 +346,10 @@ def json_to_txt(json_path):
             tpath = jpath.parent.joinpath(img['file_name'])
             tpath = pl.Path.joinpath(tpath.parent,tpath.stem+'.txt')
             lines = anndata[anndata.image_id == id]
-            str = lines.to_string(header=False,index=False,columns=['category_id','bb_x','bb_y','bb_w','bb_h'])
-            with tpath.open('w') as text:
-                text.write(str)
-            print(img)
+            if len(lines) > 0:
+                str = lines.to_string(header=False,index=False,columns=['category_id','bb_x','bb_y','bb_w','bb_h'])
+                with tpath.open('w') as text:
+                    text.write(str)
+                print(img)
 if __name__ == '__main__':
     json_to_txt('D:/dataset/flir_dataset/val/thermal_annotations.json')
