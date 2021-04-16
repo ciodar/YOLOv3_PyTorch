@@ -1,0 +1,6 @@
+classes= 3
+train  = D:/results/Feature extraction/flir dataset/flir_10_8/train_features.pt
+valid  = D:/results/Feature extraction/flir dataset/flir_10_8/valid_features.pt
+names = data/kaist_person.names
+backup = backup
+logfile = backup/logtrain.txt

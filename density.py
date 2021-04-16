@@ -1,4 +1,5 @@
 import cmdline
+import datetime
 from darknet import Darknet
 from utils import read_data_cfg
 import torch
@@ -37,30 +38,30 @@ def density(args):
     valid_path = pl.Path(options['valid'])
 
     # train loader
-    # train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
-    # t1 = torch.load(train_path, map_location=device)
-    # t1 = t1.reshape(8862, 1792, 8, 10)
-    # t2 = torch.load(train_label_path, map_location=device).reshape(8862)
-    # print("Loaded train features from {},labels from {}".format(str(train_path),str(train_label_path)))
-    # trainset = list(zip(t1, t2))
+    train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
+    t1 = torch.load(train_path, map_location=device)
+    t1 = t1.reshape(8862, 1792, 8, 10)
+    t2 = torch.load(train_label_path, map_location=device).squeeze(1)
+    print("Loaded train features from {},labels from {}".format(str(train_path),str(train_label_path)))
+    trainset = list(zip(t1, t2))
 
-    trainset = dataset.featureDataset(train_path, shape=(10, 8),
-                                           shuffle=False,
-                                           )
+    # trainset = dataset.featureDataset(train_path, shape=(10, 8),
+    #                                        shuffle=False,
+    #                                        )
 
     train_loader = D.DataLoader(trainset, batch_size=args.bs,
                                 shuffle=True)
     # test loader
-    # valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
-    # v1 = torch.load(valid_path, map_location=device)
-    # v1 = v1.reshape(1366, 1792, 8, 10)
-    # v2 = torch.load(valid_label_path, map_location=device).reshape(1366)
-    # print(f"Loaded valid features from {str(valid_path)},labels from {str(valid_label_path)}")
-    # valset = list(zip(v1, v2))
+    valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
+    v1 = torch.load(valid_path, map_location=device)
+    v1 = v1.reshape(1366, 1792, 8, 10)
+    v2 = torch.load(valid_label_path, map_location=device).squeeze(1)
+    print(f"Loaded valid features from {str(valid_path)},labels from {str(valid_label_path)}")
+    valset = list(zip(v1, v2))
 
-    valset = dataset.featureDataset(valid_path, shape=(10, 8),
-                                      shuffle=False,
-                                      )
+    # valset = dataset.featureDataset(valid_path, shape=(10, 8),
+    #                                   shuffle=False,
+    #                                   )
     valid_loader = D.DataLoader(valset, batch_size=args.bs,
                                              shuffle=False)
 
@@ -68,7 +69,11 @@ def density(args):
     # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
     train(model, args,train_loader,valid_loader,device)
     #if args.save:
-    outdir = pl.Path.joinpath(train_path.parent,args.det)
+    dateTimeObj = datetime.now()
+    outdir = pl.Path.joinpath(train_path.parent, str(dateTimeObj.year) + '_' + \
+                              str(dateTimeObj.month) + '_' + \
+                              str(dateTimeObj.day) + '_' + str(dateTimeObj.hour) + '_' + \
+                              str(dateTimeObj.minute) + '_' + str(dateTimeObj.second))
     if not outdir.exists():
         outdir.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), pl.Path.joinpath(outdir, 'trained_model.pt'))
@@ -93,14 +98,14 @@ def density(args):
                                            , eval_predict[eval_predict[:, 0] == i][:, 1]) \
                         for i in np.unique(eval_predict[:, 0])]
 
-    fig = plt.figure()
-    plt.plot(train_accu)
-    plt.plot(eval_accu)
-    plt.xlabel('epoch')
-    plt.ylabel('accuracy')
-    plt.legend(['Train', 'Valid'])
-    plt.title('Train vs Valid Accuracy')
-    plt.savefig(pl.Path.joinpath(outdir,'train_accuracy.png'))
+    # fig = plt.figure()
+    # plt.plot(train_accu)
+    # plt.plot(eval_accu)
+    # plt.xlabel('epoch')
+    # plt.ylabel('accuracy')
+    # plt.legend(['Train', 'Valid'])
+    # plt.title('Train vs Valid Accuracy')
+    # plt.savefig(pl.Path.joinpath(outdir,'train_accuracy.png'))
     # plt.show()
 
     fig = plt.figure()

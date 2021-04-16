@@ -2,6 +2,7 @@ import sys
 import time
 from PIL import Image, ImageDraw
 #from models.tiny_yolo import TinyYoloNet
+import pathlib as pl
 import cmdline
 from utils import *
 from image import letterbox_image, correct_yolo_boxes
@@ -12,6 +13,8 @@ import tqdm
 namesfile=None
 
 def detect_model(args):
+
+    images = pl.Path(args.images)
     m = Darknet(args.cfgfile)
 
     check_model = args.cfgfile.split('.')[-1]
@@ -33,18 +36,17 @@ def detect_model(args):
     m.eval()
 
     class_names = load_class_names(args.namesfile)
-    newdir = dir.replace('/', '_') + 'predicted'
+    newdir = pl.Path.joinpath(images,'predicted')
     if not os.path.exists(newdir):
         os.mkdir(newdir)
 
     start = time.time()
     total_time = 0.0
     # count_img = 0
-    for count_img, imgfile in enumerate(tqdm.tqdm(os.listdir(args.images))):
+    for count_img, imgfile in enumerate(tqdm.tqdm(list(pl.Path(images).rglob('*.png')))):
         # count_img +=1
-        imgfile = os.path.join(dir, imgfile)
 
-        img = cv2.imread(imgfile)
+        img = cv2.imread(str(imgfile))
         sized = cv2.resize(img, (m.width, m.height))
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
@@ -59,11 +61,9 @@ def detect_model(args):
         blue = (0, 0, 255)
         plot_boxes_cv2(img, boxes, class_names=class_names, color=red)
 
-        savename = (imgfile.split('/')[-1]).split('.')[0]
-        savename = savename + '_predicted.jpg'
-        savename = os.path.join(newdir, savename)
+        savename = newdir.joinpath(imgfile.name)
         # print("save plot results to %s" % savename)
-        cv2.imwrite(savename, img)
+        cv2.imwrite(str(savename), img)
     finish = time.time() - start
 
     count_img += 1

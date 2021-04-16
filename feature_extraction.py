@@ -12,6 +12,7 @@ sets = ['train','valid']
 def feature_extraction(args):
     options = read_data_cfg(args.images)
     out_path = pl.Path(args.det)
+    nclasses = int(options['classes'])
 
     m = Darknet(args.cfgfile)
     # m.print_network()
@@ -41,11 +42,12 @@ def feature_extraction(args):
                                                transform=transforms.Compose([
                                                    transforms.ToTensor(),
                                                ]))
-
-        fm = []
-        gt = []
+        batch_size = args.bs
+        assert batch_size > 0
+        fm = torch.zeros(len(valid_dataset)//batch_size,batch_size,1792,8,10)
+        gt = torch.zeros(len(valid_dataset)//batch_size,batch_size,nclasses)
         kwargs = {'num_workers': 2, 'pin_memory': True}
-        assert args.bs > 0
+
         valid_loader = torch.utils.data.DataLoader(
             valid_dataset, batch_size=args.bs, shuffle=False, **kwargs)
 
@@ -57,12 +59,14 @@ def feature_extraction(args):
                     # print("%5d|GPU memory allocated: %.3f MB"%(count_loop,(torch.cuda.memory_allocated(cuda_device) / (1024 * 1024))))
                     data = data.to(cuda_device)
                 output = m(data).clone().detach()
-                fm.append(output)
-                gt.append(target.clone().detach())
+                fm[count_loop,:,:,:,:]=output
+                gt[count_loop,:] = target.clone().detach()[:,0:nclasses]
                 del data, target, output
         # n_batches,batch,depth,height,width
-        fm = torch.stack(fm).reshape(len(valid_dataset), 1792, 8, 10)
-        gt = torch.stack(gt).reshape(len(valid_dataset))
+        fm = fm.reshape(len(valid_dataset)*batch_size, 1792, 8, 10)
+        gt = gt.reshape(len(valid_dataset)*batch_size,nclasses)
+        if gt.shape[1]==1:
+            gt = gt.squeeze(1)
 
         torch.save(fm, fm_file)
         print(f"Saved feature maps into {str(fm_file)},shape:{fm.shape}")
