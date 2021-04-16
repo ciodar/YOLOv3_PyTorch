@@ -1,5 +1,5 @@
 import cmdline
-import datetime
+from datetime import datetime
 from darknet import Darknet
 from utils import read_data_cfg
 import torch
@@ -14,7 +14,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_squared_error
+# from sklearn.metrics import mean_squared_error
 
 train_losses=[]
 train_accu=[]
@@ -26,12 +26,12 @@ def density(args):
     model = DensityNet()
     device = (torch.device(args.device) if torch.cuda.is_available()
               else torch.device('cpu'))
-    if device.type=='cuda':
-        mem = torch.cuda.get_device_properties(device).total_memory
-        reserved = torch.cuda.memory_reserved(device)
-        allocated = torch.cuda.memory_allocated(device)
-        free = reserved - allocated  # free inside reserved
-        print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
+    # if device.type=='cuda':
+    #     mem = torch.cuda.get_device_properties(device).total_memory
+    #     reserved = torch.cuda.memory_reserved(device)
+    #     allocated = torch.cuda.memory_allocated(device)
+    #     free = reserved - allocated  # free inside reserved
+    #     print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
 
     options = read_data_cfg(args.images)
     train_path = pl.Path(options['train'])
@@ -41,8 +41,9 @@ def density(args):
     train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
     t1 = torch.load(train_path, map_location=device)
     t1 = t1.reshape(8862, 1792, 8, 10)
-    t2 = torch.load(train_label_path, map_location=device).squeeze(1)
-    print("Loaded train features from {},labels from {}".format(str(train_path),str(train_label_path)))
+    t2 = torch.load(train_label_path, map_location=device)
+    print(f"Loaded train features from {str(train_path)} - shape:{t1.shape}")
+    print(f"Loaded train labels from {str(train_label_path)} - shape:{t2.shape}")
     trainset = list(zip(t1, t2))
 
     # trainset = dataset.featureDataset(train_path, shape=(10, 8),
@@ -55,8 +56,9 @@ def density(args):
     valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
     v1 = torch.load(valid_path, map_location=device)
     v1 = v1.reshape(1366, 1792, 8, 10)
-    v2 = torch.load(valid_label_path, map_location=device).squeeze(1)
-    print(f"Loaded valid features from {str(valid_path)},labels from {str(valid_label_path)}")
+    v2 = torch.load(valid_label_path, map_location=device)
+    print(f"Loaded train features from {str(valid_path)} - shape:{v1.shape}")
+    print(f"Loaded train labels from {str(valid_label_path)} - shape:{v2.shape}")
     valset = list(zip(v1, v2))
 
     # valset = dataset.featureDataset(valid_path, shape=(10, 8),
@@ -90,13 +92,13 @@ def density(args):
     np.save(pl.Path.joinpath(outdir, 'train_eval'), np.array(train_losses))
     np.save(pl.Path.joinpath(outdir, 'valid_eval'), np.array(eval_losses))
 
-    mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
-                                                ,train_predict[train_predict[:, 0] == i][:, 1]) \
-                             for i in np.unique(train_predict[:,0])]
-
-    mse_val_by_num = [mean_squared_error(eval_predict[eval_predict[:, 0] == i][:, 0] \
-                                           , eval_predict[eval_predict[:, 0] == i][:, 1]) \
-                        for i in np.unique(eval_predict[:, 0])]
+    # mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
+    #                                             ,train_predict[train_predict[:, 0] == i][:, 1]) \
+    #                          for i in np.unique(train_predict[:,0])]
+    #
+    # mse_val_by_num = [mean_squared_error(eval_predict[eval_predict[:, 0] == i][:, 0] \
+    #                                        , eval_predict[eval_predict[:, 0] == i][:, 1]) \
+    #                     for i in np.unique(eval_predict[:, 0])]
 
     # fig = plt.figure()
     # plt.plot(train_accu)
@@ -118,14 +120,14 @@ def density(args):
     plt.savefig(pl.Path.joinpath(outdir,'train_loss.png'))
     # plt.show()
 
-    fig = plt.figure()
-    plt.plot(mse_train_by_num)
-    plt.plot(mse_val_by_num)
-    plt.xlabel('person count')
-    plt.ylabel('mse')
-    plt.legend(['Train', 'Valid'])
-    plt.title('Train vs Valid MSE by number of people')
-    plt.savefig(pl.Path.joinpath(outdir,'train_mse_by_people.png'))
+    # fig = plt.figure()
+    # plt.plot(mse_train_by_num)
+    # plt.plot(mse_val_by_num)
+    # plt.xlabel('person count')
+    # plt.ylabel('mse')
+    # plt.legend(['Train', 'Valid'])
+    # plt.title('Train vs Valid MSE by number of people')
+    # plt.savefig(pl.Path.joinpath(outdir,'train_mse_by_people.png'))
     # plt.show()
 
     return model
@@ -159,7 +161,7 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
         total = 0.0
         for data, labels in train_loader:  # <3>
             data = data.to(device=device)
-            labels = labels.float().to(device=device).unsqueeze(1)
+            labels = labels.float().to(device=device)
 
             outputs = model(data)  # <4>
 
@@ -220,7 +222,7 @@ def evaluate(model,args,train_loader,valid_loader,device):
         with torch.no_grad():
             for data, labels in loader:
                 data = data.to(device=device)
-                labels = labels.unsqueeze(1).float()
+                labels = labels.float()
                 y_true = torch.cat((y_true, labels), 0)
                 outputs = model(data)
                 all_outputs = torch.cat((all_outputs, outputs), 0)
@@ -268,7 +270,7 @@ if __name__ == '__main__':
     # print(tensor)
     # m = DensityNet()
     # m.eval()
-    # output = m(tensor[0].unsqueeze(0))
+    # output = m(tensor[0].  (0))
     # print(output)
     # 3. training
     model = density(args)

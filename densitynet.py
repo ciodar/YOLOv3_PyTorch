@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class DensityNet(nn.Module):
-    def __init__(self,net_width=1024):
+    def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1792, 1024, kernel_size=3, padding=1)
         self.conv1_batchnorm = nn.BatchNorm2d(num_features=1024)
@@ -22,4 +22,6 @@ class DensityNet(nn.Module):
         out = torch.tanh(self.fc2(out))
         out = self.fc3(out)
         return out
+
+
 

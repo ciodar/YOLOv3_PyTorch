@@ -32,7 +32,7 @@ def feature_extraction(args):
     m.eval()
     for set in sets:
         fm_file = (pl.Path.joinpath(out_path,set+'_features.pt'))
-        gt_file = (pl.Path.joinpath(out_path if out_path.is_dir() else out_path.parent, fm_file.stem + '_' + '_labels' + fm_file.suffix))
+        gt_file = (pl.Path.joinpath(out_path if out_path.is_dir() else out_path.parent, fm_file.stem + '_' + 'labels' + fm_file.suffix))
         if not fm_file.parent.exists():
             fm_file.mkdir(parents=True, exist_ok=True)
         print(f"Saving features into {str(fm_file)}")
@@ -63,10 +63,8 @@ def feature_extraction(args):
                 gt[count_loop,:] = target.clone().detach()[:,0:nclasses]
                 del data, target, output
         # n_batches,batch,depth,height,width
-        fm = fm.reshape(len(valid_dataset)*batch_size, 1792, 8, 10)
-        gt = gt.reshape(len(valid_dataset)*batch_size,nclasses)
-        if gt.shape[1]==1:
-            gt = gt.squeeze(1)
+        fm = fm.reshape(len(valid_dataset), 1792, 8, 10)
+        gt = gt.reshape(len(valid_dataset),nclasses)
 
         torch.save(fm, fm_file)
         print(f"Saved feature maps into {str(fm_file)},shape:{fm.shape}")

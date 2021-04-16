@@ -1,6 +1,6 @@
 classes= 1
-train  = D:/results/Feature extraction/flir dataset/fm_kaist_density_10_8/kaist_results_train.pt
-valid  = D:/results/Feature extraction/flir dataset/fm_kaist_density_10_8/kaist_results_valid.pt
+train  = D:/results/Feature extraction/flir dataset/kaist_10_8/train_features.pt
+valid  = D:/results/Feature extraction/flir dataset/kaist_10_8/valid_features.pt
 names = data/kaist_person.names
 backup = backup
 logfile = backup/logtrain.txt
