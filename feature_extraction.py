@@ -44,8 +44,8 @@ def feature_extraction(args):
                                                ]))
         batch_size = args.bs
         assert batch_size > 0
-        fm = torch.zeros(len(valid_dataset)//batch_size,batch_size,1792,8,10)
-        gt = torch.zeros(len(valid_dataset)//batch_size,batch_size,nclasses)
+        fm = torch.zeros(len(valid_dataset)//batch_size,batch_size,1792,8,10).to(device=cuda_device)
+        gt = torch.zeros(len(valid_dataset)//batch_size,batch_size,nclasses).to(device=cuda_device)
         kwargs = {'num_workers': 2, 'pin_memory': True}
 
         valid_loader = torch.utils.data.DataLoader(
