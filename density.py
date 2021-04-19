@@ -1,10 +1,7 @@
 import cmdline
 from datetime import datetime
-from darknet import Darknet
 from utils import read_data_cfg
 import torch
-from torchvision import transforms
-import dataset
 import tqdm
 import pathlib as pl
 from densitynet import DensityNet
@@ -13,7 +10,6 @@ import torch.utils.data as D
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 # from sklearn.metrics import mean_squared_error
 
@@ -21,120 +17,6 @@ train_losses = []
 train_accu = []
 eval_losses = []
 eval_accu = []
-
-
-def density(args):
-    device = (torch.device(args.device) if torch.cuda.is_available()
-              else torch.device('cpu'))
-    # if device.type=='cuda':
-    #     mem = torch.cuda.get_device_properties(device).total_memory
-    #     reserved = torch.cuda.memory_reserved(device)
-    #     allocated = torch.cuda.memory_allocated(device)
-    #     free = reserved - allocated  # free inside reserved
-    #     print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
-
-    options = read_data_cfg(args.images)
-    nclasses = int(options['classes'])
-    train_path = pl.Path(options['train'])
-    valid_path = pl.Path(options['valid'])
-
-    model = DensityNet(1024, nclasses)
-
-    # train loader
-    train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
-    t1 = torch.load(train_path, map_location=device)
-    t1 = t1.reshape(8862, 1792, 8, 10)
-    t2 = torch.load(train_label_path, map_location=device)
-    print(f"Loaded train features from {str(train_path)} - shape:{t1.shape}")
-    print(f"Loaded train labels from {str(train_label_path)} - shape:{t2.shape}")
-    trainset = list(zip(t1, t2))
-
-    # trainset = dataset.featureDataset(train_path, shape=(10, 8),
-    #                                        shuffle=False,
-    #                                        )
-
-    train_loader = D.DataLoader(trainset, batch_size=args.bs,
-                                shuffle=True)
-    # test loader
-    valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
-    v1 = torch.load(valid_path, map_location=device)
-    v1 = v1.reshape(1366, 1792, 8, 10)
-    v2 = torch.load(valid_label_path, map_location=device)
-    print(f"Loaded train features from {str(valid_path)} - shape:{v1.shape}")
-    print(f"Loaded train labels from {str(valid_label_path)} - shape:{v2.shape}")
-    valset = list(zip(v1, v2))
-
-    # valset = dataset.featureDataset(valid_path, shape=(10, 8),
-    #                                   shuffle=False,
-    #                                   )
-    valid_loader = D.DataLoader(valset, batch_size=args.bs,
-                                shuffle=False)
-
-    # retrieve weights
-    # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
-    train(model, args, train_loader, valid_loader, device)
-    # if args.save:
-    dateTimeObj = datetime.now()
-    outdir = pl.Path.joinpath(train_path.parent, str(dateTimeObj.year) + '_' + \
-                              str(dateTimeObj.month) + '_' + \
-                              str(dateTimeObj.day) + '_' + str(dateTimeObj.hour) + '_' + \
-                              str(dateTimeObj.minute) + '_' + str(dateTimeObj.second))
-    if not outdir.exists():
-        outdir.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), pl.Path.joinpath(outdir, 'trained_model.pt'))
-    validate(model, args, train_loader=train_loader, valid_loader=valid_loader, device=device)
-    #predictions = evaluate(model, train_loader, valid_loader, device)
-
-    #train_predict = np.array(predictions['train'])
-    #train_predict = train_predict.reshape(2, train_predict.shape[1]).transpose()
-    #eval_predict = np.array(predictions['val'])
-    #eval_predict = eval_predict.reshape(2, eval_predict.shape[1]).transpose()
-
-    #np.save(pl.Path.joinpath(outdir, 'mse_train_arr'), train_predict)
-    #np.save(pl.Path.joinpath(outdir, 'mse_valid_arr'), eval_predict)
-    #np.save(pl.Path.joinpath(outdir, 'train_eval'), np.array(train_losses))
-    #np.save(pl.Path.joinpath(outdir, 'valid_eval'), np.array(eval_losses))
-
-    # mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
-    #                                             ,train_predict[train_predict[:, 0] == i][:, 1]) \
-    #                          for i in np.unique(train_predict[:,0])]
-    #
-    # mse_val_by_num = [mean_squared_error(eval_predict[eval_predict[:, 0] == i][:, 0] \
-    #                                        , eval_predict[eval_predict[:, 0] == i][:, 1]) \
-    #                     for i in np.unique(eval_predict[:, 0])]
-
-    # fig = plt.figure()
-    # plt.plot(train_accu)
-    # plt.plot(eval_accu)
-    # plt.xlabel('epoch')
-    # plt.ylabel('accuracy')
-    # plt.legend(['Train', 'Valid'])
-    # plt.title('Train vs Valid Accuracy')
-    # plt.savefig(pl.Path.joinpath(outdir,'train_accuracy.png'))
-    # plt.show()
-
-    fig = plt.figure()
-    plt.plot(train_losses)
-    plt.plot(eval_losses)
-    plt.xlabel('epoch')
-    plt.ylabel('losses')
-    plt.legend(['Train', 'Valid'])
-    plt.title('Train vs Valid Losses')
-    plt.savefig(pl.Path.joinpath(outdir, 'train_loss.png'))
-    # plt.show()
-
-    # fig = plt.figure()
-    # plt.plot(mse_train_by_num)
-    # plt.plot(mse_val_by_num)
-    # plt.xlabel('person count')
-    # plt.ylabel('mse')
-    # plt.legend(['Train', 'Valid'])
-    # plt.title('Train vs Valid MSE by number of people')
-    # plt.savefig(pl.Path.joinpath(outdir,'train_mse_by_people.png'))
-    # plt.show()
-
-    return model
-
 
 def train(model, args, train_loader, valid_loader, device):
     model.to(device=device)  # <2>
@@ -183,21 +65,21 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, valid_loade
 
         train_accu.append(accu)
         train_losses.append(train_loss)
-        # valid_loss,valid_accu = test(model,valid_loader,device)
-        # print(
-        #     f"Epoch': {epoch},Train loss: {train_loss},Train accuracy:{accu},Valid loss: {valid_loss},Valid accuracy: {valid_accu},Train MSE mean: {np.mean(train_losses)},Valid MSE mean: {np.mean(eval_losses)}")
-        # pbar.set_postfix({'Epoch': epoch, 'Train loss': train_loss, 'Train accuracy': accu, 'Valid loss': valid_loss,
-        #                   'Valid accuracy': valid_accu, 'Train MSE mean': np.mean(train_losses),
-        #                   'Valid MSE mean': np.mean(eval_losses)})
+        valid_loss,valid_accu = test(model,valid_loader,device)
+        print(
+            f"Epoch': {epoch},Train loss: {train_loss},Train accuracy:{accu},Valid loss: {valid_loss},Valid accuracy: {valid_accu},Train MSE mean: {np.mean(train_losses)},Valid MSE mean: {np.mean(eval_losses)}")
+        pbar.set_postfix({'Epoch': epoch, 'Train loss': train_loss, 'Train accuracy': accu, 'Valid loss': valid_loss,
+                          'Valid accuracy': valid_accu, 'Train MSE mean': np.mean(train_losses),
+                          'Valid MSE mean': np.mean(eval_losses)})
         if device.type != "cpu":
             pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(device) / (1024 * 1024)})
 
 
-def validate(model, args, train_loader, valid_loader, device):
+def validate(model, train_loader, valid_loader, device):
     print(f"Validating on device {device}.")
 
     model.to(device=device)  # <2>
-    # model.eval()
+    model.eval()
     loss_fn = nn.MSELoss()
 
     for name, loader in [("train", train_loader), ("val", valid_loader)]:
@@ -265,6 +147,79 @@ def test(model, valid_loader, device):
     eval_accu.append(accu)
     return valid_loss, accu
 
+def density(args):
+    device = (torch.device(args.device) if torch.cuda.is_available()
+              else torch.device('cpu'))
+    # if device.type=='cuda':
+    #     mem = torch.cuda.get_device_properties(device).total_memory
+    #     reserved = torch.cuda.memory_reserved(device)
+    #     allocated = torch.cuda.memory_allocated(device)
+    #     free = reserved - allocated  # free inside reserved
+    #     print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
+
+    options = read_data_cfg(args.images)
+    nclasses = int(options['classes'])
+    train_path = pl.Path(options['train'])
+    valid_path = pl.Path(options['valid'])
+
+    model = DensityNet(1024, nclasses)
+
+    # train loader
+    train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
+    t1 = torch.load(train_path, map_location=device)
+    t1 = t1.reshape(8862, 1792, 8, 10)
+    t2 = torch.load(train_label_path, map_location=device)
+    print(f"Loaded train features from {str(train_path)} - shape:{t1.shape}")
+    print(f"Loaded train labels from {str(train_label_path)} - shape:{t2.shape}")
+    trainset = list(zip(t1, t2))
+
+    # trainset = dataset.featureDataset(train_path, shape=(10, 8),
+    #                                        shuffle=False,
+    #                                        )
+
+    train_loader = D.DataLoader(trainset, batch_size=args.bs,
+                                shuffle=True)
+    # test loader
+    valid_label_path = pl.Path.joinpath(valid_path.parent, valid_path.stem + '_labels' + valid_path.suffix)
+    v1 = torch.load(valid_path, map_location=device)
+    v1 = v1.reshape(1366, 1792, 8, 10)
+    v2 = torch.load(valid_label_path, map_location=device)
+    print(f"Loaded train features from {str(valid_path)} - shape:{v1.shape}")
+    print(f"Loaded train labels from {str(valid_label_path)} - shape:{v2.shape}")
+    valset = list(zip(v1, v2))
+
+    # valset = dataset.featureDataset(valid_path, shape=(10, 8),
+    #                                   shuffle=False,
+    #                                   )
+    valid_loader = D.DataLoader(valset, batch_size=args.bs,
+                                shuffle=False)
+
+    # retrieve weights
+    # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
+    train(model, args, train_loader, valid_loader, device)
+    # if args.save:
+    dateTimeObj = datetime.now()
+    outdir = pl.Path.joinpath(train_path.parent, str(dateTimeObj.year) + '_' + \
+                              str(dateTimeObj.month) + '_' + \
+                              str(dateTimeObj.day) + '_' + str(dateTimeObj.hour) + '_' + \
+                              str(dateTimeObj.minute) + '_' + str(dateTimeObj.second))
+    if not outdir.exists():
+        outdir.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), pl.Path.joinpath(outdir, 'trained_model.pt'))
+    validate(model, train_loader=train_loader, valid_loader=valid_loader, device=device)
+    #predictions = evaluate(model, train_loader, valid_loader, device)
+
+    fig = plt.figure()
+    plt.plot(train_losses)
+    plt.plot(eval_losses)
+    plt.xlabel('epoch')
+    plt.ylabel('losses')
+    plt.legend(['Train', 'Valid'])
+    plt.title('Train vs Valid Losses')
+    plt.savefig(pl.Path.joinpath(outdir, 'train_loss.png'))
+    # plt.show()
+
+    return model
 
 if __name__ == '__main__':
     args = cmdline.arg_parse()
