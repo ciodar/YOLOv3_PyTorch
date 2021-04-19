@@ -44,8 +44,8 @@ def feature_extraction(args):
                                                ]))
         batch_size = args.bs
         assert batch_size > 0
-        fm = torch.zeros(len(valid_dataset)//batch_size,batch_size,1792,8,10).to(device=cuda_device)
-        gt = torch.zeros(len(valid_dataset)//batch_size,batch_size,nclasses).to(device=cuda_device)
+        fm = torch.zeros(len(valid_dataset)//batch_size + 1,batch_size,1792,8,10).to(device=cuda_device)
+        gt = torch.zeros(len(valid_dataset)//batch_size + 1,batch_size, nclasses).to(device=cuda_device)
         kwargs = {'num_workers': 2, 'pin_memory': True}
 
         valid_loader = torch.utils.data.DataLoader(
@@ -63,8 +63,8 @@ def feature_extraction(args):
                 gt[count_loop,:] = target.clone().detach()[:,0:nclasses]
                 del data, target, output
         # n_batches,batch,depth,height,width
-        fm = fm.reshape(len(valid_dataset), 1792, 8, 10)
-        gt = gt.reshape(len(valid_dataset),nclasses)
+        fm = fm[0:len(valid_dataset), :, :, :].reshape(len(valid_dataset), 1792, 8, 10)
+        gt = gt[0:len(valid_dataset),:].reshape(len(valid_dataset),nclasses)
 
         torch.save(fm, fm_file)
         print(f"Saved feature maps into {str(fm_file)},shape:{fm.shape}")

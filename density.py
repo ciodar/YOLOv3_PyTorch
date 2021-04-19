@@ -14,16 +14,16 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
 # from sklearn.metrics import mean_squared_error
 
-train_losses=[]
-train_accu=[]
-eval_losses=[]
-eval_accu=[]
+train_losses = []
+train_accu = []
+eval_losses = []
+eval_accu = []
 
 
 def density(args):
-    model = DensityNet()
     device = (torch.device(args.device) if torch.cuda.is_available()
               else torch.device('cpu'))
     # if device.type=='cuda':
@@ -34,8 +34,11 @@ def density(args):
     #     print(f"Training on device {device},total GPU memory: {mem},allocated:{allocated} free:{free}, lr={args.lr:e}.")
 
     options = read_data_cfg(args.images)
+    nclasses = int(options['classes'])
     train_path = pl.Path(options['train'])
     valid_path = pl.Path(options['valid'])
+
+    model = DensityNet(1024, nclasses)
 
     # train loader
     train_label_path = pl.Path.joinpath(train_path.parent, train_path.stem + '_labels' + train_path.suffix)
@@ -65,12 +68,12 @@ def density(args):
     #                                   shuffle=False,
     #                                   )
     valid_loader = D.DataLoader(valset, batch_size=args.bs,
-                                             shuffle=False)
+                                shuffle=False)
 
     # retrieve weights
     # model.load_state_dict(torch.load('D:/results/10_18_2conv_norm.pt',map_location="cpu"))
-    train(model, args,train_loader,valid_loader,device)
-    #if args.save:
+    train(model, args, train_loader, valid_loader, device)
+    # if args.save:
     dateTimeObj = datetime.now()
     outdir = pl.Path.joinpath(train_path.parent, str(dateTimeObj.year) + '_' + \
                               str(dateTimeObj.month) + '_' + \
@@ -79,18 +82,18 @@ def density(args):
     if not outdir.exists():
         outdir.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), pl.Path.joinpath(outdir, 'trained_model.pt'))
-    validate(model,args,train_loader=train_loader,valid_loader=valid_loader,device=device)
-    predictions = evaluate(model,args,train_loader,valid_loader,device)
+    validate(model, args, train_loader=train_loader, valid_loader=valid_loader, device=device)
+    #predictions = evaluate(model, train_loader, valid_loader, device)
 
-    train_predict = np.array(predictions['train'])
-    train_predict = train_predict.reshape(2,train_predict.shape[1]).transpose()
-    eval_predict = np.array(predictions['val'])
-    eval_predict = eval_predict.reshape(2,eval_predict.shape[1]).transpose()
+    #train_predict = np.array(predictions['train'])
+    #train_predict = train_predict.reshape(2, train_predict.shape[1]).transpose()
+    #eval_predict = np.array(predictions['val'])
+    #eval_predict = eval_predict.reshape(2, eval_predict.shape[1]).transpose()
 
-    np.save(pl.Path.joinpath(outdir, 'mse_train_arr'), train_predict)
-    np.save(pl.Path.joinpath(outdir, 'mse_valid_arr'), eval_predict)
-    np.save(pl.Path.joinpath(outdir, 'train_eval'), np.array(train_losses))
-    np.save(pl.Path.joinpath(outdir, 'valid_eval'), np.array(eval_losses))
+    #np.save(pl.Path.joinpath(outdir, 'mse_train_arr'), train_predict)
+    #np.save(pl.Path.joinpath(outdir, 'mse_valid_arr'), eval_predict)
+    #np.save(pl.Path.joinpath(outdir, 'train_eval'), np.array(train_losses))
+    #np.save(pl.Path.joinpath(outdir, 'valid_eval'), np.array(eval_losses))
 
     # mse_train_by_num= [mean_squared_error(train_predict[train_predict[:, 0] == i][:, 0] \
     #                                             ,train_predict[train_predict[:, 0] == i][:, 1]) \
@@ -117,7 +120,7 @@ def density(args):
     plt.ylabel('losses')
     plt.legend(['Train', 'Valid'])
     plt.title('Train vs Valid Losses')
-    plt.savefig(pl.Path.joinpath(outdir,'train_loss.png'))
+    plt.savefig(pl.Path.joinpath(outdir, 'train_loss.png'))
     # plt.show()
 
     # fig = plt.figure()
@@ -132,8 +135,8 @@ def density(args):
 
     return model
 
-def train(model,args,train_loader,valid_loader,device):
 
+def train(model, args, train_loader, valid_loader, device):
     model.to(device=device)  # <2>
     model.train()
     optimizer = optim.SGD(model.parameters(), lr=args.lr)  # <3>
@@ -145,12 +148,12 @@ def train(model,args,train_loader,valid_loader,device):
         model=model,
         loss_fn=loss_fn,
         train_loader=train_loader,
-        valid_loader = valid_loader,
+        valid_loader=valid_loader,
         device=device
     )
 
 
-def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader, device):
+def training_loop(n_epochs, optimizer, model, loss_fn, train_loader, valid_loader, device):
     pbar = tqdm.tqdm(range(1, n_epochs + 1))
     for epoch in pbar:  # <2>
 
@@ -180,13 +183,17 @@ def training_loop(n_epochs, optimizer, model, loss_fn, train_loader,valid_loader
 
         train_accu.append(accu)
         train_losses.append(train_loss)
-        valid_loss,valid_accu = test(model,valid_loader,device)
-        print(f"Epoch': {epoch},Train loss: {train_loss},Train accuracy:{accu},Valid loss: {valid_loss},Valid accuracy: {valid_accu},Train MSE mean: {np.mean(train_losses)},Valid MSE mean: {np.mean(eval_losses)}")
-        pbar.set_postfix({'Epoch': epoch,'Train loss':train_loss,'Train accuracy':accu,'Valid loss':valid_loss,'Valid accuracy':valid_accu,'Train MSE mean':np.mean(train_losses),'Valid MSE mean':np.mean(eval_losses)})
+        # valid_loss,valid_accu = test(model,valid_loader,device)
+        # print(
+        #     f"Epoch': {epoch},Train loss: {train_loss},Train accuracy:{accu},Valid loss: {valid_loss},Valid accuracy: {valid_accu},Train MSE mean: {np.mean(train_losses)},Valid MSE mean: {np.mean(eval_losses)}")
+        # pbar.set_postfix({'Epoch': epoch, 'Train loss': train_loss, 'Train accuracy': accu, 'Valid loss': valid_loss,
+        #                   'Valid accuracy': valid_accu, 'Train MSE mean': np.mean(train_losses),
+        #                   'Valid MSE mean': np.mean(eval_losses)})
         if device.type != "cpu":
             pbar.set_postfix({'GPU memory allocated': torch.cuda.memory_allocated(device) / (1024 * 1024)})
 
-def validate(model, args, train_loader, valid_loader,device):
+
+def validate(model, args, train_loader, valid_loader, device):
     print(f"Validating on device {device}.")
 
     model.to(device=device)  # <2>
@@ -199,41 +206,38 @@ def validate(model, args, train_loader, valid_loader,device):
         with torch.no_grad():
             for data, labels in loader:
                 data = data.to(device=device)
-                labels = labels.to(device=device).view(-1,1).float()
+                labels = labels.to(device=device).view(-1, 1).float()
                 outputs = model(data)
 
-                loss = loss_fn(outputs,labels)
+                loss = loss_fn(outputs, labels)
                 running_loss += loss.item()
 
-        mse = running_loss/len(loader)
+        mse = running_loss / len(loader)
         print("MSE {}: {:.2f}".format(name, mse))
 
-def evaluate(model,args,train_loader,valid_loader,device):
+
+def evaluate(model, train_loader, valid_loader, device):
     print(f"Validating on device {device}.")
 
     model.to(device=device)  # <2>
     model.eval()
 
-
-    predictions = {}
+    result = {}
     for name, loader in [("train", train_loader), ("val", valid_loader)]:
-        y_true = torch.tensor([], dtype=torch.float, device=device)
-        all_outputs = torch.tensor([], device=device)
+        pred = torch.zeros(2,len(loader.dataset) // loader.batch_size + 1, loader.batch_size, model.nclasses)
+        pred.to(device=device)
         with torch.no_grad():
-            for data, labels in loader:
+            for count_loop, (data, labels) in enumerate(loader):
                 data = data.to(device=device)
                 labels = labels.float()
-                y_true = torch.cat((y_true, labels), 0)
                 outputs = model(data)
-                all_outputs = torch.cat((all_outputs, outputs), 0)
-        y_true = y_true.cpu().numpy()
-        all_outputs = all_outputs.cpu().numpy()
-        predictions[name]=(y_true,all_outputs)
-    return predictions
+                pred[0, count_loop, :, :] = labels
+                pred[1, count_loop, :, :] = outputs
+        result[name] = pred.reshape(2, pred.shape[1]*pred.shape[2], model.nclasses).numpy()
+    return result
 
 
-
-def test(model,valid_loader,device):
+def test(model, valid_loader, device):
     model.eval()
 
     running_loss = 0.
@@ -243,7 +247,7 @@ def test(model,valid_loader,device):
     loss_fn = nn.MSELoss()
 
     with torch.no_grad():
-        for data,labels in valid_loader:
+        for data, labels in valid_loader:
             data = data.to(device=device)
             labels = labels.to(device=device).view(-1, 1).float()
             outputs = model(data)
@@ -259,7 +263,7 @@ def test(model,valid_loader,device):
 
     eval_losses.append(valid_loss)
     eval_accu.append(accu)
-    return valid_loss,accu
+    return valid_loss, accu
 
 
 if __name__ == '__main__':
