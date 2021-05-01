@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="PyTorch_YOLOv3" pattern="*.*" />
+</component>

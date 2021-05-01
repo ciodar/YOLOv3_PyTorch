@@ -33,10 +33,14 @@ This repository is forked from great work pytorch-yolov3 of <a href="https://git
 Noted that all of these instructions for Linux environment (for Windows, you should visit original repository to read more)
 
 ### Some default parameters:
-* weightfile = weights/kaist_thermal_detector.weights 
-* configurationfile = cfg/yolov3_kaist.cfg 
+* --weight = "weights/kaist_thermal_detector.weights ""
+* --cfg = "cfg/yolov3_kaist.cfg"
+* --confidence=0.5
+* --nms_thresh=0.4
+* --cuda=True
+* --names="data/kaist_person.names"
+* -- 
 * datafile = data/kaist.data
-* listname = data/kaist_person.names
 For all of following commands, if command with [...] will be an option,
 you can use your parameter or leave there to use default paramaters above.
 

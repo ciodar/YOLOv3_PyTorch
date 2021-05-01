@@ -169,6 +169,24 @@ def print_cfg(blocks):
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
+        # elif block['type'] == 'merge':
+        #     layers = block['layers'].split(',')
+        #     layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
+        #     print('%5d %-6s %d %d %d' % (ind, 'merge', layers[0],layers[1],layers[2]))
+        #     assert (prev_width == out_widths[layers[1]])
+        #     assert (prev_height == out_heights[layers[1]])
+        #     prev_width = out_widths[layers[0]]
+        #     prev_height = out_heights[layers[0]]
+        #     prev_filters = out_filters[layers[0]] + out_filters[layers[1]] + out_filters[layers[2]]
+        #     out_widths.append(prev_width)
+        #     out_heights.append(prev_height)
+        #     out_filters.append(prev_filters)
+        elif block['type'] == 'empty':
+            print('%5d %-6s %d %d %d' % (ind, 'merge', layers[0], layers[1], layers[2]))
+            prev_width = out_widths[ind-1]
+            prev_height = out_heights[layers[0]]
+            prev_filters = out_filters[layers[0]] + out_filters[layers[1]] + out_filters[layers[2]]
+            pass
         else:
             print('unknown type %s' % (block['type']))
 
@@ -190,7 +208,7 @@ def save_conv(fp, conv_model):
 
 def load_bn_from_yolov3_instead_random(start,end):
     import numpy as np
-    weightfile = 'weights/yolov3.weights'
+    weightfile = 'weights/kaist_thermal_detector.weights'
 
     fp = open(weightfile, 'rb')
     version = np.fromfile(fp, count=3, dtype=np.int32)

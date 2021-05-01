@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="d7d372b7-b3ca-443a-97e2-3e30b0464b8d" name="micc_server" url="">
+        <fileTransfer rootFolder="/home/dcioni" accessType="SFTP" host="150.217.35.131" port="22" sshConfigId="16c9496c-12c1-4ccc-9852-dd246c65bc2c" sshConfig="dcioni@150.217.35.131:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

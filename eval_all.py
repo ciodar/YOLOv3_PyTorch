@@ -2,6 +2,7 @@ import os
 import os.path
 from PIL import Image
 import sys
+from torch.cuda import get_device_name
 from torch.autograd import Variable
 sys.path.append('.')
 from darknet import Darknet
@@ -55,12 +56,14 @@ def get_image_txt_name(imagefile):
     return imagefile.replace('images', 'labels').replace('.jpg', '.txt').replace('.jpeg', '.txt').replace('.png','.txt').replace('.tif','.txt')
 
 
-def eval_list(cfgfile, namefile, weightfile, testfile):
+def eval_list(cfgfile, namefile, weightfile, testfile,cuda_device='cuda:0'):
     m = Darknet(cfgfile)
     m.load_weights(weightfile)
-    use_cuda = 1
-    if use_cuda:
-        m.cuda()
+    device_n = cuda_device.split(':')[1]
+    #TODO pass as parameter
+    if cuda_device.split(':')[0]=='cuda':
+        m.cuda(cuda_device)
+        print("Using device #",device_n," (",get_device_name(cuda_device),")")
 
     class_names = load_class_names(namefile)
 
@@ -76,6 +79,7 @@ def eval_list(cfgfile, namefile, weightfile, testfile):
         filename = os.path.splitext(filename)[0]
         #print(filename, img.width, img.height, sized_width, sized_height)
 
+        #Images with resolution higher than 2560x1024 are not considered
         if m.width * m.height > 1024 * 2560:
             print('omit %s' % filename)
             continue
@@ -96,7 +100,7 @@ def eval_list(cfgfile, namefile, weightfile, testfile):
             print('img: save to %s' % savename)
             plot_boxes(img, boxes, savename, class_names)
 
-        if False:
+        if True:
             savename = get_det_result_name(imgfile)
             print('det: save to %s' % savename)
             save_boxes(imgfile, img, boxes, savename)
@@ -108,8 +112,8 @@ if __name__ == '__main__':
         namefile = sys.argv[2]
         wgtfile = sys.argv[3]
         testlist = sys.argv[4]
-
-        eval_list (cfgfile, namefile, wgtfile, testlist)
+        cuda_device = 'cuda:1'
+        eval_list (cfgfile, namefile, wgtfile, testlist,cuda_device)
     else:
         print("Usage: %s cfgfile classname weight testlist" % sys.argv[0] )
 

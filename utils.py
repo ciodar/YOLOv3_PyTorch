@@ -111,7 +111,7 @@ def convert2cpu(gpu_matrix):
 def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
-def get_all_boxes(output, netshape, conf_thresh, num_classes, only_objectness=1, validation=False, use_cuda=True):
+def get_all_boxes(output, netshape, conf_thresh, num_classes, only_objectness=1, validation=False, cuda_device='cuda:0'):
     # total number of inputs (batch size)
     # first element (x) for first tuple (x, anchor_mask, num_anchor)
     tot = output[0]['x'].data.size(0)
@@ -125,13 +125,13 @@ def get_all_boxes(output, netshape, conf_thresh, num_classes, only_objectness=1,
         num_anchors = output[i]['n'].data[0].item()
 
         b = get_region_boxes(pred, netshape, conf_thresh, num_classes, anchors, num_anchors, \
-                only_objectness=only_objectness, validation=validation, use_cuda=use_cuda)
+                only_objectness=only_objectness, validation=validation, cuda_device=cuda_device)
         for t in range(tot):
             all_boxes[t] += b[t]
     return all_boxes
 
-def get_region_boxes(output, netshape, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False, use_cuda=True):
-    device = torch.device("cuda" if use_cuda else "cpu")
+def get_region_boxes(output, netshape, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False, cuda_device='cuda:0'):
+    device = torch.device(cuda_device)
     anchors = anchors.to(device)
     anchor_step = anchors.size(0)//num_anchors
     if output.dim() == 3:
@@ -341,6 +341,38 @@ def read_truths_args(lab_path, min_box_scale):
         new_truths.append([truths[i][0], truths[i][1], truths[i][2], truths[i][3], truths[i][4]])
     return np.array(new_truths)
 
+# def read_json_truths_args(annotations_df, min_box_scale):
+#     new_truths = []
+#     for a in annotations_df[4]:
+#         if a['bbox'][3]/annotations_df[2] < min_box_scale:
+#             continue
+#         new_truths.append([a['category_id'], a['bbox'][0]/annotations_df[2], a['bbox'][1]/annotations_df[3], a['bbox'][2]/annotations_df[2], a['bbox'][3]/annotations_df[3]])
+#     return np.array(new_truths)
+
+def read_truths_count(lab_path, min_box_scale):
+    truths = read_truths(lab_path)
+    count = 0
+    for i in range(truths.shape[0]):
+        if truths[i][3] < min_box_scale:
+            continue
+        count += 1
+    return count
+
+def read_truths_count_flir(lab_path, min_box_scale):
+    truths = read_truths(lab_path)
+    truths = truths[truths[:, 3] >= min_box_scale]
+    new_truths = [truths[truths[:, 0] == 1].shape[0], truths[truths[:, 0] == 2].shape[0],
+                  truths[truths[:, 0] == 3].shape[0]]
+    return np.array(new_truths)
+
+# def read_json_truths_count(annotations_df, min_box_scale):
+#     count = 0
+#     for a in annotations_df[4]:
+#         if a['bbox'][3] / annotations_df[2] < min_box_scale or a['category_id']!=1:
+#             continue
+#         count+=1
+#     return count
+
 def load_class_names(namesfile):
     class_names = []
     with open(namesfile, 'r') as fp:
@@ -379,7 +411,11 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=True):
         shape=(0,0)
     else:
         shape=(model.width, model.height)
-    boxes = get_all_boxes(out_boxes, shape, conf_thresh, model.num_classes, use_cuda=use_cuda)[0]
+    if use_cuda:
+        cuda_device='cuda:0'
+    else:
+        cuda_device='cpu'
+    boxes = get_all_boxes(out_boxes, shape, conf_thresh, model.num_classes, cuda_device=cuda_device)[0]
     
     t3 = time.time()
     boxes = nms(boxes, nms_thresh)
@@ -432,6 +468,15 @@ def file_lines(thefilepath):
         count += buffer.count(b'\n')
     thefile.close( )
     return count
+
+def get_image_list(image_path,foldername):
+    image_list = []
+    if(image_path[-1]!='/'):
+        image_path = image_path + '/'
+    with open(foldername) as fp:
+        tmp_files = fp.readlines()
+        image_list = [os.path.realpath(image_path + item.rstrip()) for item in tmp_files]
+    return image_list
 
 def get_image_size(fname):
     '''Determine the image type of fhandle and return its size.

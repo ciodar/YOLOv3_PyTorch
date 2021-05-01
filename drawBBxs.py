@@ -70,7 +70,7 @@ def detect_model(cfgfile, modelfile,dir):
         m.load_weights(modelfile)
 
     # m.print_network()
-    use_cuda = True
+    use_cuda = False
     if use_cuda:
         m.cuda()
 
@@ -94,9 +94,9 @@ def detect_model(cfgfile, modelfile,dir):
         sized = cv2.resize(img, (m.width, m.height))
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
-        lablepath = imgfile.replace('.jpg', '.txt').replace('.png', '.txt')
+        lablepath = imgfile.replace('.jpg', '.txt').replace('.png', '.txt').replace('.jpeg','.txt')
 
-        if os.path.getsize(lablepath):
+        if os.path.exists(lablepath):
             truths = np.loadtxt(lablepath)
             truths = truths.reshape(truths.size // 5, 5)  # to avoid single truth problem
         else:
@@ -178,10 +178,10 @@ def detect_model(cfgfile, modelfile,dir):
 
 
 if __name__ == '__main__':
-    globals()["namesfile"] = 'data/kaist_person.names'
+    globals()["namesfile"] = 'data/flir.names'
 
-    cfgfile = 'cfg/yolov3_kaist.cfg'
-    modelfile = 'weights/kaist_thermal_detector.weights'
+    cfgfile = 'C:/Users/Dario/Documents/Projects/YOLOv3_PyTorch/cfg/yolov3_flir.cfg'
+    modelfile = 'K:/weights/flir_detector.weights'
 
     if len(sys.argv) == 2:
         folder = sys.argv[1]
